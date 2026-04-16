@@ -8,7 +8,7 @@ export function useCalculation() {
   const stages = useMemo(
     () => calculateFunnel(filters),
     [
-      filters.targetGender,
+      filters.genders,
       filters.maritalStatuses,
       filters.ageRange,
       filters.incomeRange,

@@ -1,4 +1,4 @@
-import type { FilterState, MaritalStatus } from '../store/types'
+import type { FilterState, Gender, MaritalStatus } from '../store/types'
 import type { FunnelStage, AgeGroup } from './types'
 import { AGE_GROUPS, ageGroupStart, ageGroupEnd } from './types'
 import { normalRangeProbability } from './normalDistribution'
@@ -8,8 +8,6 @@ import incomeEducationData from '../data/income-education.json'
 import heightWeightData from '../data/height-weight.json'
 import occupationData from '../data/occupation.json'
 import prefectureData from '../data/prefecture.json'
-
-type GenderKey = 'male' | 'female'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function get(obj: any, ...keys: string[]): any {
@@ -43,13 +41,11 @@ function getOverlappingAgeGroups(ageRange: [number, number]): Array<{ group: Age
   return result
 }
 
-/** Total population for a gender and age group (all marital statuses) */
-function getTotalPopulation(gender: GenderKey, group: AgeGroup): number {
+function getTotalPopulation(gender: Gender, group: AgeGroup): number {
   return get(populationData, 'total', gender, group) ?? 0
 }
 
-/** Sum of marital status ratios for selected statuses */
-function getMaritalStatusRatio(gender: GenderKey, group: AgeGroup, statuses: MaritalStatus[]): number {
+function getMaritalStatusRatio(gender: Gender, group: AgeGroup, statuses: MaritalStatus[]): number {
   let ratio = 0
   for (const s of statuses) {
     ratio += (get(populationData, 'maritalStatus', gender, group, s) as number) ?? 0
@@ -58,7 +54,7 @@ function getMaritalStatusRatio(gender: GenderKey, group: AgeGroup, statuses: Mar
 }
 
 function getIncomeEducationProbability(
-  gender: GenderKey,
+  gender: Gender,
   group: AgeGroup,
   incomeCategories: string[],
   educationLevels: string[],
@@ -73,7 +69,6 @@ function getIncomeEducationProbability(
 
   const hasIncomeFilter = incomeCategories.length > 0
   const hasEducationFilter = educationLevels.length > 0
-
   if (!hasIncomeFilter && !hasEducationFilter) return 1.0
 
   const eduLevels = hasEducationFilter ? educationLevels : Object.keys(groupDist)
@@ -82,7 +77,6 @@ function getIncomeEducationProbability(
   for (const edu of eduLevels) {
     const eduWeight: number = groupEduDist[edu] ?? 0
     if (eduWeight === 0) continue
-
     const incomeDist = groupDist[edu]
     if (!incomeDist) continue
 
@@ -96,30 +90,28 @@ function getIncomeEducationProbability(
       totalProb += eduWeight
     }
   }
-
   return totalProb
 }
 
-function getHeightProbability(gender: GenderKey, group: AgeGroup, heightRange: [number, number]): number {
+function getHeightProbability(gender: Gender, group: AgeGroup, heightRange: [number, number]): number {
   const mean: number | undefined = get(heightWeightData, gender, group, 'height', 'mean')
   const sd: number | undefined = get(heightWeightData, gender, group, 'height', 'sd')
   if (mean == null || sd == null) return 1.0
   return normalRangeProbability(heightRange[0], heightRange[1], mean, sd)
 }
 
-function getWeightProbability(gender: GenderKey, group: AgeGroup, weightRange: [number, number]): number {
+function getWeightProbability(gender: Gender, group: AgeGroup, weightRange: [number, number]): number {
   const mean: number | undefined = get(heightWeightData, gender, group, 'weight', 'mean')
   const sd: number | undefined = get(heightWeightData, gender, group, 'weight', 'sd')
   if (mean == null || sd == null) return 1.0
   return normalRangeProbability(weightRange[0], weightRange[1], mean, sd)
 }
 
-function getOccupationProbability(gender: GenderKey, group: AgeGroup, occupations: string[]): number {
+function getOccupationProbability(gender: Gender, group: AgeGroup, occupations: string[]): number {
   if (occupations.length === 0) return 1.0
   const groupDist = get(occupationData, 'distribution', gender, group)
     ?? get(occupationData, 'distribution', gender, 'default')
   if (!groupDist) return 1.0
-
   let prob = 0
   for (const occ of occupations) {
     prob += (groupDist[occ] as number) ?? 0
@@ -136,57 +128,82 @@ function getPrefectureRatio(prefectures: string[]): number {
   return ratio
 }
 
+const ALL_GENDERS: Gender[] = ['male', 'female']
 const ALL_MARITAL_STATUSES: MaritalStatus[] = ['unmarried', 'married', 'divorced', 'widowed']
+const GENDER_LABELS: Record<Gender, string> = { male: '男性', female: '女性' }
 const MARITAL_LABELS: Record<MaritalStatus, string> = {
-  unmarried: '未婚',
-  married: '既婚',
-  divorced: '離別',
-  widowed: '死別',
+  unmarried: '未婚', married: '既婚', divorced: '離別', widowed: '死別',
+}
+
+/**
+ * Helper: sum a per-gender-age value across selected genders and age groups.
+ */
+function sumAcrossGendersAndGroups(
+  genders: Gender[],
+  groups: Array<{ group: AgeGroup; fraction: number }>,
+  maritalStatuses: MaritalStatus[],
+  fn: (gender: Gender, group: AgeGroup) => number,
+): number {
+  let total = 0
+  for (const gender of genders) {
+    for (const { group, fraction } of groups) {
+      const pop = getTotalPopulation(gender, group) * fraction
+      const maritalRatio = getMaritalStatusRatio(gender, group, maritalStatuses)
+      total += pop * maritalRatio * fn(gender, group)
+    }
+  }
+  return total
+}
+
+function filteredPop(
+  genders: Gender[],
+  groups: Array<{ group: AgeGroup; fraction: number }>,
+  maritalStatuses: MaritalStatus[],
+): number {
+  return sumAcrossGendersAndGroups(genders, groups, maritalStatuses, () => 1)
 }
 
 export function calculateFunnel(filters: FilterState): FunnelStage[] {
-  const { targetGender, maritalStatuses, ageRange, incomeRange, educationLevels, heightRange, weightRange, occupations, prefectures } = filters
-  const gender = targetGender
+  const { genders, maritalStatuses, ageRange, incomeRange, educationLevels, heightRange, weightRange, occupations, prefectures } = filters
 
-  // Convert income slider range to data category keys
   const incomeCategories = incomeRangeToCategories(incomeRange[0], incomeRange[1])
   const isIncomeFiltered = incomeRange[0] > 0 || incomeRange[1] < 2000
 
   const stages: FunnelStage[] = []
 
-  // Compute the total population for the selected gender (all ages, all statuses)
+  // Grand total: all ages, all statuses, for selected genders
   let grandTotal = 0
-  for (const group of AGE_GROUPS) {
-    grandTotal += getTotalPopulation(gender, group)
+  for (const gender of genders) {
+    for (const group of AGE_GROUPS) {
+      grandTotal += getTotalPopulation(gender, group)
+    }
   }
 
-  // Stage 0: Base — total population of selected gender
-  const genderLabel = gender === 'male' ? '日本の男性' : '日本の女性'
-  stages.push({
-    id: 'base',
-    label: genderLabel,
-    count: grandTotal,
-    percentage: 1.0,
-  })
+  // Stage 0: Base
+  const baseLabel = genders.length === 2
+    ? '日本の総人口'
+    : `日本の${GENDER_LABELS[genders[0]]}`
+  stages.push({ id: 'base', label: baseLabel, count: grandTotal, percentage: 1.0 })
 
-  // Stage 1: Marital status filter
+  // Stage 1: Gender filter (only if one gender selected, show as explicit filter)
+  const isGenderFiltered = genders.length < ALL_GENDERS.length
+  if (isGenderFiltered) {
+    // grandTotal already reflects selected genders, so this stage just labels it
+    // (no reduction needed since base is already scoped)
+  }
+
+  // Stage 2: Marital status filter
   const isMaritalFiltered = maritalStatuses.length < ALL_MARITAL_STATUSES.length
   const overlappingGroups = getOverlappingAgeGroups(ageRange)
 
-  // We need population after marital status filter for each age group
-  // to use as weights in later stages
-  function getFilteredPopulation(group: AgeGroup, fraction: number): number {
-    const total = getTotalPopulation(gender, group) * fraction
-    const maritalRatio = getMaritalStatusRatio(gender, group, maritalStatuses)
-    return total * maritalRatio
-  }
-
   if (isMaritalFiltered) {
     let afterMarital = 0
-    for (const group of AGE_GROUPS) {
-      const total = getTotalPopulation(gender, group)
-      const ratio = getMaritalStatusRatio(gender, group, maritalStatuses)
-      afterMarital += total * ratio
+    for (const gender of genders) {
+      for (const group of AGE_GROUPS) {
+        const total = getTotalPopulation(gender, group)
+        const ratio = getMaritalStatusRatio(gender, group, maritalStatuses)
+        afterMarital += total * ratio
+      }
     }
     afterMarital = Math.round(afterMarital)
 
@@ -199,13 +216,9 @@ export function calculateFunnel(filters: FilterState): FunnelStage[] {
     })
   }
 
-  // Stage 2: Age filter
-  let afterAge = 0
-  for (const { group, fraction } of overlappingGroups) {
-    afterAge += getFilteredPopulation(group, fraction)
-  }
-  afterAge = Math.round(afterAge)
-
+  // Stage 3: Age filter
+  const afterAgePop = filteredPop(genders, overlappingGroups, maritalStatuses)
+  const afterAge = Math.round(afterAgePop)
   stages.push({
     id: 'age',
     label: `年齢: ${ageRange[0]}〜${ageRange[1]}歳`,
@@ -215,7 +228,7 @@ export function calculateFunnel(filters: FilterState): FunnelStage[] {
 
   let currentCount = afterAge
 
-  // Stage 3: Prefecture filter
+  // Stage 4: Prefecture filter
   if (prefectures.length > 0) {
     const prefRatio = getPrefectureRatio(prefectures)
     currentCount = Math.round(currentCount * prefRatio)
@@ -223,28 +236,16 @@ export function calculateFunnel(filters: FilterState): FunnelStage[] {
     const label = prefNames.length <= 3
       ? `居住地: ${prefNames.join('・')}`
       : `居住地: ${prefNames.length}都道府県`
-    stages.push({
-      id: 'prefecture',
-      label,
-      count: currentCount,
-      percentage: currentCount / grandTotal,
-    })
+    stages.push({ id: 'prefecture', label, count: currentCount, percentage: currentCount / grandTotal })
   }
 
-  // Stage 4: Income + Education (joint distribution)
+  // Stage 5: Income + Education
   if (isIncomeFiltered || educationLevels.length > 0) {
-    let weightedProb = 0
-    let totalWeight = 0
-
-    for (const { group, fraction } of overlappingGroups) {
-      const pop = getFilteredPopulation(group, fraction)
-      const cats = isIncomeFiltered ? incomeCategories : []
-      const prob = getIncomeEducationProbability(gender, group, cats, educationLevels)
-      weightedProb += pop * prob
-      totalWeight += pop
-    }
-
-    const avgProb = totalWeight > 0 ? weightedProb / totalWeight : 0
+    const cats = isIncomeFiltered ? incomeCategories : []
+    const weighted = sumAcrossGendersAndGroups(genders, overlappingGroups, maritalStatuses,
+      (g, grp) => getIncomeEducationProbability(g, grp, cats, educationLevels))
+    const base = afterAgePop
+    const avgProb = base > 0 ? weighted / base : 0
     currentCount = Math.round(currentCount * avgProb)
 
     const parts: string[] = []
@@ -256,94 +257,46 @@ export function calculateFunnel(filters: FilterState): FunnelStage[] {
       else if (maxLabel) parts.push(`年収${maxLabel}以下`)
     }
     if (educationLevels.length > 0) parts.push('学歴')
-
-    stages.push({
-      id: 'income-education',
-      label: parts.join('・'),
-      count: currentCount,
-      percentage: currentCount / grandTotal,
-    })
+    stages.push({ id: 'income-education', label: parts.join('・'), count: currentCount, percentage: currentCount / grandTotal })
   }
 
-  // Stage 5: Height filter
+  // Stage 6: Height
   const isHeightFiltered = heightRange[0] > 140 || heightRange[1] < 200
   if (isHeightFiltered) {
-    let weightedProb = 0
-    let totalWeight = 0
-
-    for (const { group, fraction } of overlappingGroups) {
-      const pop = getFilteredPopulation(group, fraction)
-      const prob = getHeightProbability(gender, group, heightRange)
-      weightedProb += pop * prob
-      totalWeight += pop
-    }
-
-    const avgProb = totalWeight > 0 ? weightedProb / totalWeight : 1
+    const weighted = sumAcrossGendersAndGroups(genders, overlappingGroups, maritalStatuses,
+      (g, grp) => getHeightProbability(g, grp, heightRange))
+    const base = afterAgePop
+    const avgProb = base > 0 ? weighted / base : 1
     currentCount = Math.round(currentCount * avgProb)
-    stages.push({
-      id: 'height',
-      label: `身長: ${heightRange[0]}〜${heightRange[1]}cm`,
-      count: currentCount,
-      percentage: currentCount / grandTotal,
-    })
+    stages.push({ id: 'height', label: `身長: ${heightRange[0]}〜${heightRange[1]}cm`, count: currentCount, percentage: currentCount / grandTotal })
   }
 
-  // Stage 6: Weight filter
+  // Stage 7: Weight
   const isWeightFiltered = weightRange[0] > 30 || weightRange[1] < 120
   if (isWeightFiltered) {
-    let weightedProb = 0
-    let totalWeight = 0
-
-    for (const { group, fraction } of overlappingGroups) {
-      const pop = getFilteredPopulation(group, fraction)
-      const prob = getWeightProbability(gender, group, weightRange)
-      weightedProb += pop * prob
-      totalWeight += pop
-    }
-
-    const avgProb = totalWeight > 0 ? weightedProb / totalWeight : 1
+    const weighted = sumAcrossGendersAndGroups(genders, overlappingGroups, maritalStatuses,
+      (g, grp) => getWeightProbability(g, grp, weightRange))
+    const base = afterAgePop
+    const avgProb = base > 0 ? weighted / base : 1
     currentCount = Math.round(currentCount * avgProb)
-    stages.push({
-      id: 'weight',
-      label: `体重: ${weightRange[0]}〜${weightRange[1]}kg`,
-      count: currentCount,
-      percentage: currentCount / grandTotal,
-    })
+    stages.push({ id: 'weight', label: `体重: ${weightRange[0]}〜${weightRange[1]}kg`, count: currentCount, percentage: currentCount / grandTotal })
   }
 
-  // Stage 7: Occupation filter
+  // Stage 8: Occupation
   if (occupations.length > 0) {
-    let weightedProb = 0
-    let totalWeight = 0
+    const weighted = sumAcrossGendersAndGroups(genders, overlappingGroups, maritalStatuses,
+      (g, grp) => getOccupationProbability(g, grp, occupations))
+    const base = afterAgePop
+    const avgProb = base > 0 ? weighted / base : 0
 
-    for (const { group, fraction } of overlappingGroups) {
-      const pop = getFilteredPopulation(group, fraction)
-      const prob = getOccupationProbability(gender, group, occupations)
-      weightedProb += pop * prob
-      totalWeight += pop
-    }
-
-    const avgProb = totalWeight > 0 ? weightedProb / totalWeight : 0
-
-    let avgEmpRate = 0
-    let empWeight = 0
-    for (const { group, fraction } of overlappingGroups) {
-      const pop = getFilteredPopulation(group, fraction)
-      const empRate: number = get(incomeEducationData, 'employmentRate', gender, group) ?? 0.5
-      avgEmpRate += pop * empRate
-      empWeight += pop
-    }
-    avgEmpRate = empWeight > 0 ? avgEmpRate / empWeight : 0.5
+    // Employment rate
+    const empWeighted = sumAcrossGendersAndGroups(genders, overlappingGroups, maritalStatuses,
+      (g, grp) => (get(incomeEducationData, 'employmentRate', g, grp) as number) ?? 0.5)
+    const avgEmpRate = base > 0 ? empWeighted / base : 0.5
 
     const empMultiplier = (isIncomeFiltered || educationLevels.length > 0) ? 1 : avgEmpRate
     currentCount = Math.round(currentCount * avgProb * empMultiplier)
-
-    stages.push({
-      id: 'occupation',
-      label: '職業',
-      count: currentCount,
-      percentage: currentCount / grandTotal,
-    })
+    stages.push({ id: 'occupation', label: '職業', count: currentCount, percentage: currentCount / grandTotal })
   }
 
   return stages

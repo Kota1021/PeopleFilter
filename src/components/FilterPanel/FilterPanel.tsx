@@ -22,29 +22,29 @@ export function FilterPanel() {
     <div className="space-y-6">
       {/* Gender selector */}
       <div className="space-y-2">
-        <span className="text-sm text-text-secondary">探す相手</span>
+        <span className="text-sm text-text-secondary">性別</span>
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => store.setTargetGender('male')}
+            onClick={() => store.toggleGender('male')}
             className={clsx(
               'py-3 rounded-lg font-medium text-sm transition-all duration-200 border',
-              store.targetGender === 'male'
+              store.genders.includes('male')
                 ? 'bg-accent-male/15 border-accent-male text-accent-male shadow-[0_0_12px_rgba(6,182,212,0.2)]'
                 : 'bg-bg-surface border-border text-text-secondary hover:border-text-muted',
             )}
           >
-            男性を探す
+            男性
           </button>
           <button
-            onClick={() => store.setTargetGender('female')}
+            onClick={() => store.toggleGender('female')}
             className={clsx(
               'py-3 rounded-lg font-medium text-sm transition-all duration-200 border',
-              store.targetGender === 'female'
+              store.genders.includes('female')
                 ? 'bg-accent-female/15 border-accent-female text-accent-female shadow-[0_0_12px_rgba(244,63,94,0.2)]'
                 : 'bg-bg-surface border-border text-text-secondary hover:border-text-muted',
             )}
           >
-            女性を探す
+            女性
           </button>
         </div>
       </div>

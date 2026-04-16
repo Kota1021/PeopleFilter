@@ -2,7 +2,7 @@ export type Gender = 'male' | 'female'
 export type MaritalStatus = 'unmarried' | 'married' | 'divorced' | 'widowed'
 
 export interface FilterState {
-  targetGender: Gender
+  genders: Gender[]
   maritalStatuses: MaritalStatus[]
   ageRange: [number, number]
   incomeRange: [number, number]
@@ -14,7 +14,7 @@ export interface FilterState {
 }
 
 export interface FilterActions {
-  setTargetGender: (g: Gender) => void
+  toggleGender: (g: Gender) => void
   toggleMaritalStatus: (s: MaritalStatus) => void
   setAgeRange: (r: [number, number]) => void
   setIncomeRange: (r: [number, number]) => void

@@ -1,13 +1,18 @@
 import { create } from 'zustand'
-import type { FilterStore, MaritalStatus } from './types'
+import type { FilterStore } from './types'
 
 function toggleItem<T>(arr: T[], item: T): T[] {
   return arr.includes(item) ? arr.filter(i => i !== item) : [...arr, item]
 }
 
+function toggleAtLeastOne<T>(arr: T[], item: T): T[] {
+  const next = toggleItem(arr, item)
+  return next.length > 0 ? next : arr
+}
+
 const defaultState = {
-  targetGender: 'male' as const,
-  maritalStatuses: ['unmarried'] as MaritalStatus[],
+  genders: ['male', 'female'] as ('male' | 'female')[],
+  maritalStatuses: ['unmarried'] as ('unmarried' | 'married' | 'divorced' | 'widowed')[],
   ageRange: [20, 39] as [number, number],
   incomeRange: [0, 2000] as [number, number],
   educationLevels: [] as string[],
@@ -20,12 +25,8 @@ const defaultState = {
 export const useFilterStore = create<FilterStore>((set) => ({
   ...defaultState,
 
-  setTargetGender: (g) => set({ targetGender: g }),
-  toggleMaritalStatus: (s) => set((state) => {
-    const next = toggleItem(state.maritalStatuses, s)
-    // Ensure at least one is selected
-    return next.length > 0 ? { maritalStatuses: next } : state
-  }),
+  toggleGender: (g) => set((s) => ({ genders: toggleAtLeastOne(s.genders, g) })),
+  toggleMaritalStatus: (s) => set((state) => ({ maritalStatuses: toggleAtLeastOne(state.maritalStatuses, s) })),
   setAgeRange: (r) => set({ ageRange: r }),
   setIncomeRange: (r) => set({ incomeRange: r }),
   toggleEducation: (level) => set((s) => ({ educationLevels: toggleItem(s.educationLevels, level) })),
