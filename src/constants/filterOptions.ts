@@ -1,16 +1,47 @@
-export const INCOME_OPTIONS = [
-  { value: '~100', label: '〜100万円' },
-  { value: '100-200', label: '100〜200万円' },
-  { value: '200-300', label: '200〜300万円' },
-  { value: '300-400', label: '300〜400万円' },
-  { value: '400-500', label: '400〜500万円' },
-  { value: '500-600', label: '500〜600万円' },
-  { value: '600-700', label: '600〜700万円' },
-  { value: '700-800', label: '700〜800万円' },
-  { value: '800-900', label: '800〜900万円' },
-  { value: '900-1000', label: '900〜1000万円' },
-  { value: '1000-1500', label: '1000〜1500万円' },
-  { value: '1500+', label: '1500万円以上' },
+export const INCOME_STEPS = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000] as const
+
+export const INCOME_STEP_LABELS: Record<number, string> = {
+  0: '0',
+  100: '100万',
+  200: '200万',
+  300: '300万',
+  400: '400万',
+  500: '500万',
+  600: '600万',
+  700: '700万',
+  800: '800万',
+  900: '900万',
+  1000: '1000万',
+  1500: '1500万',
+  2000: '上限なし',
+}
+
+/** Maps income range [min, max] to the data's category keys */
+export function incomeRangeToCategories(min: number, max: number): string[] {
+  const mapping: Array<{ key: string; lower: number; upper: number }> = [
+    { key: '~100', lower: 0, upper: 100 },
+    { key: '100-200', lower: 100, upper: 200 },
+    { key: '200-300', lower: 200, upper: 300 },
+    { key: '300-400', lower: 300, upper: 400 },
+    { key: '400-500', lower: 400, upper: 500 },
+    { key: '500-600', lower: 500, upper: 600 },
+    { key: '600-700', lower: 600, upper: 700 },
+    { key: '700-800', lower: 700, upper: 800 },
+    { key: '800-900', lower: 800, upper: 900 },
+    { key: '900-1000', lower: 900, upper: 1000 },
+    { key: '1000-1500', lower: 1000, upper: 1500 },
+    { key: '1500+', lower: 1500, upper: Infinity },
+  ]
+  return mapping
+    .filter(({ lower, upper }) => lower >= min && upper <= (max >= 2000 ? Infinity : max))
+    .map(({ key }) => key)
+}
+
+export const MARITAL_STATUS_OPTIONS = [
+  { value: 'unmarried' as const, label: '未婚' },
+  { value: 'married' as const, label: '既婚' },
+  { value: 'divorced' as const, label: '離別' },
+  { value: 'widowed' as const, label: '死別' },
 ] as const
 
 export const EDUCATION_OPTIONS = [

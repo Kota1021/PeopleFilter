@@ -2,9 +2,12 @@ import clsx from 'clsx'
 import { useFilterStore } from '../../store/filterStore'
 import { RangeSlider } from '../shared/RangeSlider'
 import { ChipSelector } from '../shared/ChipSelector'
+import { SteppedRangeSlider } from '../shared/SteppedRangeSlider'
 import { PrefectureSelector } from '../shared/PrefectureSelector'
 import {
-  INCOME_OPTIONS,
+  MARITAL_STATUS_OPTIONS,
+  INCOME_STEPS,
+  INCOME_STEP_LABELS,
   EDUCATION_OPTIONS,
   OCCUPATION_OPTIONS,
   AGE_RANGE,
@@ -46,6 +49,30 @@ export function FilterPanel() {
         </div>
       </div>
 
+      {/* Marital status */}
+      <div className="space-y-2">
+        <span className="text-sm text-text-secondary">配偶関係</span>
+        <div className="flex flex-wrap gap-2">
+          {MARITAL_STATUS_OPTIONS.map((opt) => {
+            const isActive = store.maritalStatuses.includes(opt.value)
+            return (
+              <button
+                key={opt.value}
+                onClick={() => store.toggleMaritalStatus(opt.value)}
+                className={clsx(
+                  'px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border',
+                  isActive
+                    ? 'bg-accent-male/20 border-accent-male text-accent-male shadow-[0_0_8px_rgba(6,182,212,0.3)]'
+                    : 'bg-bg-surface border-border text-text-secondary hover:border-text-muted hover:text-text-primary',
+                )}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {/* Age range */}
       <RangeSlider
         label="年齢"
@@ -57,12 +84,13 @@ export function FilterPanel() {
         unit="歳"
       />
 
-      {/* Income */}
-      <ChipSelector
+      {/* Income range slider */}
+      <SteppedRangeSlider
         label="年収"
-        options={INCOME_OPTIONS}
-        selected={store.incomeRanges}
-        onToggle={store.toggleIncome}
+        steps={INCOME_STEPS}
+        stepLabels={INCOME_STEP_LABELS}
+        value={store.incomeRange}
+        onChange={store.setIncomeRange}
       />
 
       {/* Education */}

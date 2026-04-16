@@ -9,8 +9,9 @@ export function useCalculation() {
     () => calculateFunnel(filters),
     [
       filters.targetGender,
+      filters.maritalStatuses,
       filters.ageRange,
-      filters.incomeRanges,
+      filters.incomeRange,
       filters.educationLevels,
       filters.heightRange,
       filters.weightRange,
