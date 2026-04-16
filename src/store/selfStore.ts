@@ -68,6 +68,7 @@ export const useSelfStore = create<SelfStore>()(
     {
       name: 'people-filter-self',
       version: 1,
+      migrate: () => defaultSelf,
       partialize: (state) => ({
         gender: state.gender,
         age: state.age,

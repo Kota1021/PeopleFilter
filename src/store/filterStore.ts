@@ -62,6 +62,7 @@ export const useFilterStore = create<FilterStore>()(
     {
       name: 'people-filter-search',
       version: 1,
+      migrate: () => defaultState,
       partialize: (state) => ({
         genders: state.genders,
         maritalStatuses: state.maritalStatuses,
