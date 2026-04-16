@@ -20,6 +20,7 @@ interface SelfActions {
   setIncome: (v: number) => void
   setHeight: (v: number) => void
   setWeight: (v: number) => void
+  resetAll: () => void
 }
 
 export type SelfStore = SelfState & SelfActions
@@ -62,6 +63,7 @@ export const useSelfStore = create<SelfStore>()(
       setIncome: (v) => set({ income: v }),
       setHeight: (v) => set({ height: v }),
       setWeight: (v) => set({ weight: v }),
+      resetAll: () => set(defaultSelf),
     }),
     {
       name: 'people-filter-self',

@@ -76,6 +76,7 @@ function App() {
                     <ResultDisplay
                       stage={finalStage}
                       baseCount={stages[0]?.count ?? 1}
+                      baseLabel={stages[0]?.label ?? ''}
                     />
                   )}
                 </div>

@@ -6,6 +6,7 @@ import { formatPopulation, formatPercentage } from '../../utils/format'
 interface ResultDisplayProps {
   stage: FunnelStage
   baseCount: number
+  baseLabel: string
 }
 
 function AnimatedNumber({ value }: { value: number }) {
@@ -44,7 +45,7 @@ function getRarityLevel(percentage: number): { label: string; glowClass: string 
   return null
 }
 
-export function ResultDisplay({ stage, baseCount }: ResultDisplayProps) {
+export function ResultDisplay({ stage, baseCount, baseLabel }: ResultDisplayProps) {
   const percentage = baseCount > 0 ? stage.count / baseCount : 0
   const rarity = getRarityLevel(percentage)
 
@@ -82,7 +83,7 @@ export function ResultDisplay({ stage, baseCount }: ResultDisplayProps) {
       </div>
 
       <p className="text-text-muted text-lg tabular-nums">
-        未婚{stage.count > 0 ? '者' : ''}全体の <span className="text-text-primary font-bold">{formatPercentage(percentage)}</span>
+        {baseLabel}の <span className="text-text-primary font-bold">{formatPercentage(percentage)}</span>
       </p>
     </motion.div>
   )

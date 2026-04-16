@@ -127,6 +127,14 @@ export function SelfInput() {
 
       {/* Weight */}
       <NumberInput label="体重" value={store.weight} onChange={store.setWeight} min={30} max={120} unit="kg" />
+
+      {/* Reset button */}
+      <button
+        onClick={store.resetAll}
+        className="w-full py-2 rounded-lg text-sm text-text-muted border border-border hover:text-text-secondary hover:border-text-muted transition-colors"
+      >
+        プロフィールをリセット
+      </button>
     </div>
   )
 }
