@@ -93,7 +93,7 @@ function App() {
                   )}
                 </div>
 
-                {partnerScore && <ScoreDisplay score={partnerScore} title="求める相手の魅力度" />}
+                {partnerScore && <ScoreDisplay score={partnerScore} title="求める相手のレア度" />}
               </div>
             </div>
           ) : (
@@ -101,13 +101,13 @@ function App() {
             <div className="flex flex-col lg:flex-row gap-8">
               <div className="w-full lg:w-[380px] shrink-0">
                 <div className="lg:sticky lg:top-4 bg-bg-surface rounded-2xl border border-border p-5">
-                  <h2 className="text-sm font-bold text-text-secondary mb-4">あなたのスペック</h2>
+                  <h2 className="text-sm font-bold text-text-secondary mb-4">あなたのプロフィール</h2>
                   <SelfInput />
                 </div>
               </div>
 
               <div className="flex-1 min-w-0">
-                <ScoreDisplay score={selfScore} title="あなたの魅力度" />
+                <ScoreDisplay score={selfScore} title="あなたのレア度" />
               </div>
             </div>
           )}

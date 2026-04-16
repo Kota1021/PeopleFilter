@@ -33,12 +33,12 @@ export interface ScoreResult {
 }
 
 function percentileToTier(p: number): { tier: string; label: string } {
-  if (p >= 95) return { tier: 'S', label: '超ハイスペ' }
-  if (p >= 80) return { tier: 'A', label: 'ハイスペ' }
-  if (p >= 60) return { tier: 'B', label: 'やや上' }
-  if (p >= 40) return { tier: 'C', label: '平均的' }
-  if (p >= 20) return { tier: 'D', label: 'やや下' }
-  return { tier: 'E', label: '厳しめ' }
+  if (p >= 95) return { tier: 'S', label: '超激レア' }
+  if (p >= 80) return { tier: 'A', label: '激レア' }
+  if (p >= 60) return { tier: 'B', label: 'レア' }
+  if (p >= 40) return { tier: 'C', label: 'ふつう' }
+  if (p >= 20) return { tier: 'D', label: 'よくいる' }
+  return { tier: 'E', label: 'ありふれた' }
 }
 
 /**

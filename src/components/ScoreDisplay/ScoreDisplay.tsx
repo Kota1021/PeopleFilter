@@ -38,7 +38,7 @@ function PercentileBar({ percentile, color }: { percentile: number; color: strin
   )
 }
 
-export function ScoreDisplay({ score, title = '配偶者魅力度スコア' }: ScoreDisplayProps) {
+export function ScoreDisplay({ score, title = 'レア度スコア' }: ScoreDisplayProps) {
   const tierColor = TIER_COLORS[score.tier] ?? '#94a3b8'
   const tierGlow = TIER_GLOW[score.tier] ?? 'none'
 
