@@ -100,4 +100,21 @@ describe('calculateFunnel', () => {
     const mAge = mStages.find(s => s.id === 'age')!
     expect(mAge.count).toBeGreaterThan(uAge.count)
   })
+
+  it('married men with high income filter pass at higher rate than unmarried', () => {
+    const base = { ...baseFilters, genders: ['male'] as ('male' | 'female')[], ageRange: [30, 44] as [number, number] }
+    const unmarried: FilterState = { ...base, maritalStatuses: ['unmarried'], incomeRange: [600, 2000] }
+    const married: FilterState = { ...base, maritalStatuses: ['married'], incomeRange: [600, 2000] }
+
+    const uStages = calculateFunnel(unmarried)
+    const mStages = calculateFunnel(married)
+    const uIncome = uStages.find(s => s.id === 'income-education')!
+    const mIncome = mStages.find(s => s.id === 'income-education')!
+    // Married men should have a higher proportion passing 600万+ income filter
+    const uAge = uStages.find(s => s.id === 'age')!
+    const mAge = mStages.find(s => s.id === 'age')!
+    const uRate = uIncome.count / uAge.count
+    const mRate = mIncome.count / mAge.count
+    expect(mRate).toBeGreaterThan(uRate)
+  })
 })

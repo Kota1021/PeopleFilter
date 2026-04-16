@@ -53,15 +53,30 @@ function getMaritalStatusRatio(gender: Gender, group: AgeGroup, statuses: Marita
   return ratio
 }
 
+/**
+ * Map marital status to which distribution/employment data to use.
+ * - unmarried → 'unmarried' (distribution)
+ * - married/divorced/widowed → 'married' (distributionMarried)
+ * Divorced/widowed income profiles are closer to married than unmarried.
+ */
+type MaritalDataKey = 'unmarried' | 'married'
+
+function maritalToDataKey(status: MaritalStatus): MaritalDataKey {
+  return status === 'unmarried' ? 'unmarried' : 'married'
+}
+
 function getIncomeEducationProbability(
   gender: Gender,
   group: AgeGroup,
+  maritalDataKey: MaritalDataKey,
   incomeCategories: string[],
   educationLevels: string[],
 ): number {
-  const groupDist = get(incomeEducationData, 'distribution', gender, group)
+  const distKey = maritalDataKey === 'unmarried' ? 'distribution' : 'distributionMarried'
+  const groupDist = get(incomeEducationData, distKey, gender, group)
+    ?? get(incomeEducationData, 'distribution', gender, group) // fallback to unmarried if married data missing
   const groupEduDist = get(incomeEducationData, 'educationDistribution', gender, group)
-  const groupEmpRate: number = get(incomeEducationData, 'employmentRate', gender, group) ?? 0.5
+  const groupEmpRate: number = get(incomeEducationData, 'employmentRate', maritalDataKey, gender, group) ?? 0.5
 
   if (!groupDist || !groupEduDist) {
     return groupEmpRate * (incomeCategories.length > 0 ? 0.3 : 1.0) * (educationLevels.length > 0 ? 0.4 : 1.0)
@@ -137,6 +152,7 @@ const MARITAL_LABELS: Record<MaritalStatus, string> = {
 
 /**
  * Helper: sum a per-gender-age value across selected genders and age groups.
+ * fn receives gender and group only (marital-agnostic — for height, weight, occupation).
  */
 function sumAcrossGendersAndGroups(
   genders: Gender[],
@@ -150,6 +166,30 @@ function sumAcrossGendersAndGroups(
       const pop = getTotalPopulation(gender, group) * fraction
       const maritalRatio = getMaritalStatusRatio(gender, group, maritalStatuses)
       total += pop * maritalRatio * fn(gender, group)
+    }
+  }
+  return total
+}
+
+/**
+ * Like sumAcrossGendersAndGroups but iterates marital statuses individually,
+ * so the callback can use marital-specific data (income distributions differ by marital status).
+ */
+function sumWithMaritalBreakdown(
+  genders: Gender[],
+  groups: Array<{ group: AgeGroup; fraction: number }>,
+  maritalStatuses: MaritalStatus[],
+  fn: (gender: Gender, group: AgeGroup, maritalKey: MaritalDataKey) => number,
+): number {
+  let total = 0
+  for (const gender of genders) {
+    for (const { group, fraction } of groups) {
+      const basePop = getTotalPopulation(gender, group) * fraction
+      for (const ms of maritalStatuses) {
+        const msRatio = (get(populationData, 'maritalStatus', gender, group, ms) as number) ?? 0
+        const dataKey = maritalToDataKey(ms)
+        total += basePop * msRatio * fn(gender, group, dataKey)
+      }
     }
   }
   return total
@@ -239,11 +279,11 @@ export function calculateFunnel(filters: FilterState): FunnelStage[] {
     stages.push({ id: 'prefecture', label, count: currentCount, percentage: currentCount / grandTotal })
   }
 
-  // Stage 5: Income + Education
+  // Stage 5: Income + Education (uses marital-specific distributions)
   if (isIncomeFiltered || educationLevels.length > 0) {
     const cats = isIncomeFiltered ? incomeCategories : []
-    const weighted = sumAcrossGendersAndGroups(genders, overlappingGroups, maritalStatuses,
-      (g, grp) => getIncomeEducationProbability(g, grp, cats, educationLevels))
+    const weighted = sumWithMaritalBreakdown(genders, overlappingGroups, maritalStatuses,
+      (g, grp, mk) => getIncomeEducationProbability(g, grp, mk, cats, educationLevels))
     const base = afterAgePop
     const avgProb = base > 0 ? weighted / base : 0
     currentCount = Math.round(currentCount * avgProb)
@@ -289,9 +329,9 @@ export function calculateFunnel(filters: FilterState): FunnelStage[] {
     const base = afterAgePop
     const avgProb = base > 0 ? weighted / base : 0
 
-    // Employment rate
-    const empWeighted = sumAcrossGendersAndGroups(genders, overlappingGroups, maritalStatuses,
-      (g, grp) => (get(incomeEducationData, 'employmentRate', g, grp) as number) ?? 0.5)
+    // Employment rate (marital-specific)
+    const empWeighted = sumWithMaritalBreakdown(genders, overlappingGroups, maritalStatuses,
+      (g, grp, mk) => (get(incomeEducationData, 'employmentRate', mk, g, grp) as number) ?? 0.5)
     const avgEmpRate = base > 0 ? empWeighted / base : 0.5
 
     const empMultiplier = (isIncomeFiltered || educationLevels.length > 0) ? 1 : avgEmpRate
