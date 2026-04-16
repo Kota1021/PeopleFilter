@@ -48,7 +48,15 @@ export const useSelfStore = create<SelfStore>()(
     }),
     {
       name: 'people-filter-self',
-      partialize: ({ setGender, setAge, setMaritalStatus, setEducation, setIncome, setHeight, setWeight, ...state }) => state,
+      partialize: (state) => ({
+        gender: state.gender,
+        age: state.age,
+        maritalStatus: state.maritalStatus,
+        education: state.education,
+        income: state.income,
+        height: state.height,
+        weight: state.weight,
+      }),
     },
   ),
 )

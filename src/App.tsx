@@ -20,23 +20,9 @@ function App() {
   const filters = useFilterStore()
   const selfState = useSelfStore()
 
-  const partnerScore = useMemo(() => calculateScore(filters), [
-    filters.genders,
-    filters.ageRange,
-    filters.incomeRange,
-    filters.educationLevels,
-    filters.heightRange,
-    filters.weightRange,
-  ])
+  const partnerScore = useMemo(() => calculateScore(filters), [filters])
 
-  const selfScore = useMemo(() => calculateSelfScore(selfState), [
-    selfState.gender,
-    selfState.age,
-    selfState.income,
-    selfState.education,
-    selfState.height,
-    selfState.weight,
-  ])
+  const selfScore = useMemo(() => calculateSelfScore(selfState), [selfState])
 
   return (
     <div className="min-h-screen bg-bg-primary">

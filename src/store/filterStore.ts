@@ -41,7 +41,17 @@ export const useFilterStore = create<FilterStore>()(
     }),
     {
       name: 'people-filter-search',
-      partialize: ({ toggleGender, toggleMaritalStatus, setAgeRange, setIncomeRange, toggleEducation, setHeightRange, setWeightRange, toggleOccupation, togglePrefecture, resetAll, ...state }) => state,
+      partialize: (state) => ({
+        genders: state.genders,
+        maritalStatuses: state.maritalStatuses,
+        ageRange: state.ageRange,
+        incomeRange: state.incomeRange,
+        educationLevels: state.educationLevels,
+        heightRange: state.heightRange,
+        weightRange: state.weightRange,
+        occupations: state.occupations,
+        prefectures: state.prefectures,
+      }),
     },
   ),
 )

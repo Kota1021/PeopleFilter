@@ -1,23 +1,16 @@
 import { useMemo } from 'react'
 import { useFilterStore } from '../store/filterStore'
 import { calculateFunnel } from '../engine/calculator'
+import type { FilterState } from '../store/types'
+
+const selectState = (s: FilterState) => s
 
 export function useCalculation() {
-  const filters = useFilterStore()
+  const filters = useFilterStore(selectState)
 
   const stages = useMemo(
     () => calculateFunnel(filters),
-    [
-      filters.genders,
-      filters.maritalStatuses,
-      filters.ageRange,
-      filters.incomeRange,
-      filters.educationLevels,
-      filters.heightRange,
-      filters.weightRange,
-      filters.occupations,
-      filters.prefectures,
-    ],
+    [filters],
   )
 
   const finalStage = stages[stages.length - 1]
