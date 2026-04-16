@@ -105,7 +105,7 @@ export function ScoreDisplay({ score, title = 'レア度スコア' }: ScoreDispl
 
       <p className="text-[10px] text-text-muted mt-4 leading-relaxed">
         ※ このスコアは統計データに基づく相対的な位置づけを示すもので、
-        個人の価値を評価するものではありません。年齢は若い方が有利、
+        個人の価値を評価するものではありません。恋愛市場における選好の傾向を単純化し年齢は若い方が有利、
         学歴は高い方が有利、身長は高い方が有利、体重はBMI普通体重が最も有利として算出しています。
       </p>
     </motion.div>

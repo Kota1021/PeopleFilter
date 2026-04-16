@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { FilterStore } from './types'
+import type { FilterState, FilterStore } from './types'
 
 function toggleItem<T>(arr: T[], item: T): T[] {
   return arr.includes(item) ? arr.filter(i => i !== item) : [...arr, item]
@@ -11,16 +11,36 @@ function toggleAtLeastOne<T>(arr: T[], item: T): T[] {
   return next.length > 0 ? next : arr
 }
 
-const defaultState = {
-  genders: ['male', 'female'] as ('male' | 'female')[],
-  maritalStatuses: ['unmarried'] as ('unmarried' | 'married' | 'divorced' | 'widowed')[],
-  ageRange: [20, 39] as [number, number],
-  incomeRange: [0, 2000] as [number, number],
-  educationLevels: [] as string[],
-  heightRange: [140, 200] as [number, number],
-  weightRange: [30, 120] as [number, number],
-  occupations: [] as string[],
-  prefectures: [] as string[],
+const defaultState: FilterState = {
+  genders: ['male', 'female'],
+  maritalStatuses: ['unmarried'],
+  ageRange: [20, 39],
+  incomeRange: [0, 2000],
+  educationLevels: [],
+  heightRange: [140, 200],
+  weightRange: [30, 120],
+  occupations: [],
+  prefectures: [],
+}
+
+function isValidRange(v: unknown): v is [number, number] {
+  return Array.isArray(v) && v.length === 2 && typeof v[0] === 'number' && typeof v[1] === 'number'
+}
+
+function safeMerge(persisted: unknown): Partial<FilterState> {
+  if (persisted == null || typeof persisted !== 'object') return {}
+  const p = persisted as Record<string, unknown>
+  const merged: Partial<FilterState> = {}
+  if (Array.isArray(p.genders) && p.genders.length > 0) merged.genders = p.genders
+  if (Array.isArray(p.maritalStatuses) && p.maritalStatuses.length > 0) merged.maritalStatuses = p.maritalStatuses
+  if (isValidRange(p.ageRange)) merged.ageRange = p.ageRange
+  if (isValidRange(p.incomeRange)) merged.incomeRange = p.incomeRange
+  if (Array.isArray(p.educationLevels)) merged.educationLevels = p.educationLevels
+  if (isValidRange(p.heightRange)) merged.heightRange = p.heightRange
+  if (isValidRange(p.weightRange)) merged.weightRange = p.weightRange
+  if (Array.isArray(p.occupations)) merged.occupations = p.occupations
+  if (Array.isArray(p.prefectures)) merged.prefectures = p.prefectures
+  return merged
 }
 
 export const useFilterStore = create<FilterStore>()(
@@ -41,6 +61,7 @@ export const useFilterStore = create<FilterStore>()(
     }),
     {
       name: 'people-filter-search',
+      version: 1,
       partialize: (state) => ({
         genders: state.genders,
         maritalStatuses: state.maritalStatuses,
@@ -52,6 +73,7 @@ export const useFilterStore = create<FilterStore>()(
         occupations: state.occupations,
         prefectures: state.prefectures,
       }),
+      merge: (persisted, current) => ({ ...current, ...safeMerge(persisted) }),
     },
   ),
 )

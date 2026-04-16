@@ -34,6 +34,23 @@ const defaultSelf: SelfState = {
   weight: 65,
 }
 
+const VALID_GENDERS = new Set<string>(['male', 'female'])
+const VALID_MARITAL = new Set<string>(['unmarried', 'married', 'divorced', 'widowed'])
+
+function safeMerge(persisted: unknown): Partial<SelfState> {
+  if (persisted == null || typeof persisted !== 'object') return {}
+  const p = persisted as Record<string, unknown>
+  const merged: Partial<SelfState> = {}
+  if (typeof p.gender === 'string' && VALID_GENDERS.has(p.gender)) merged.gender = p.gender as Gender
+  if (typeof p.age === 'number' && p.age >= 0) merged.age = p.age
+  if (typeof p.maritalStatus === 'string' && VALID_MARITAL.has(p.maritalStatus)) merged.maritalStatus = p.maritalStatus as MaritalStatus
+  if (typeof p.education === 'string') merged.education = p.education
+  if (typeof p.income === 'number' && p.income >= 0) merged.income = p.income
+  if (typeof p.height === 'number' && p.height > 0) merged.height = p.height
+  if (typeof p.weight === 'number' && p.weight > 0) merged.weight = p.weight
+  return merged
+}
+
 export const useSelfStore = create<SelfStore>()(
   persist(
     (set) => ({
@@ -48,6 +65,7 @@ export const useSelfStore = create<SelfStore>()(
     }),
     {
       name: 'people-filter-self',
+      version: 1,
       partialize: (state) => ({
         gender: state.gender,
         age: state.age,
@@ -57,6 +75,7 @@ export const useSelfStore = create<SelfStore>()(
         height: state.height,
         weight: state.weight,
       }),
+      merge: (persisted, current) => ({ ...current, ...safeMerge(persisted) }),
     },
   ),
 )
