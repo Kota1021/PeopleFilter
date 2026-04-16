@@ -3,6 +3,7 @@ import type { ScoreResult } from '../../engine/scorer'
 
 interface ScoreDisplayProps {
   score: ScoreResult
+  title?: string
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -37,7 +38,7 @@ function PercentileBar({ percentile, color }: { percentile: number; color: strin
   )
 }
 
-export function ScoreDisplay({ score }: ScoreDisplayProps) {
+export function ScoreDisplay({ score, title = '配偶者魅力度スコア' }: ScoreDisplayProps) {
   const tierColor = TIER_COLORS[score.tier] ?? '#94a3b8'
   const tierGlow = TIER_GLOW[score.tier] ?? 'none'
 
@@ -49,8 +50,7 @@ export function ScoreDisplay({ score }: ScoreDisplayProps) {
       transition={{ delay: 0.3 }}
     >
       <h2 className="text-sm font-bold text-text-secondary mb-4">
-        配偶者魅力度スコア
-        <span className="text-text-muted font-normal ml-2 text-xs">※ フィルター条件の中央値で算出</span>
+        {title}
       </h2>
 
       {/* Composite tier */}

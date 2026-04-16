@@ -1,8 +1,10 @@
 import type { FilterState, Gender } from '../store/types'
+import type { SelfState } from '../store/selfStore'
 import type { AgeGroup } from './types'
 import { AGE_GROUPS, ageGroupStart, ageGroupEnd } from './types'
 import { normalCDF } from './normalDistribution'
 import populationData from '../data/population.json'
+import incomeEducationData from '../data/income-education.json'
 import heightWeightData from '../data/height-weight.json'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -251,4 +253,157 @@ export function calculateScore(filters: FilterState): ScoreResult | null {
     tier,
     tierLabel: label,
   }
+}
+
+/**
+ * Income score: higher = better percentile.
+ * Uses the age-group-specific income distribution from income-education.json.
+ * Computes what % of the same gender+age group earns less than the given amount.
+ */
+function scoreIncome(income: number, gender: Gender, age: number): number {
+  if (income <= 0) return 0
+
+  // Map age to the closest available age group in the data
+  const ageGroupKeys = ['20-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50-54']
+  function ageToGroup(a: number): string {
+    if (a < 20) return '20-24'
+    if (a >= 55) return '50-54'
+    const idx = Math.floor((a - 20) / 5)
+    return ageGroupKeys[Math.min(idx, ageGroupKeys.length - 1)]
+  }
+  const group = ageToGroup(age)
+
+  // Income bracket boundaries in 万円
+  const brackets: Array<{ key: string; lower: number; upper: number }> = [
+    { key: '~100', lower: 0, upper: 100 },
+    { key: '100-200', lower: 100, upper: 200 },
+    { key: '200-300', lower: 200, upper: 300 },
+    { key: '300-400', lower: 300, upper: 400 },
+    { key: '400-500', lower: 400, upper: 500 },
+    { key: '500-600', lower: 500, upper: 600 },
+    { key: '600-700', lower: 600, upper: 700 },
+    { key: '700-800', lower: 700, upper: 800 },
+    { key: '800-900', lower: 800, upper: 900 },
+    { key: '900-1000', lower: 900, upper: 1000 },
+    { key: '1000-1500', lower: 1000, upper: 1500 },
+    { key: '1500+', lower: 1500, upper: 2500 },
+  ]
+
+  // Get the income distribution for this gender+age, marginalized over all education levels
+  const groupDist = get(incomeEducationData, 'distribution', gender, group)
+  const eduDist = get(incomeEducationData, 'educationDistribution', gender, group)
+  if (!groupDist || !eduDist) return 50
+
+  // Build marginalized income distribution (weighted average over education levels)
+  const marginal: Record<string, number> = {}
+  for (const bracket of brackets) {
+    marginal[bracket.key] = 0
+  }
+
+  let totalEduWeight = 0
+  for (const edu of Object.keys(groupDist)) {
+    const eduWeight: number = eduDist[edu] ?? 0
+    if (eduWeight <= 0) continue
+    totalEduWeight += eduWeight
+    const incomeDist = groupDist[edu]
+    if (!incomeDist) continue
+    for (const bracket of brackets) {
+      marginal[bracket.key] += eduWeight * ((incomeDist[bracket.key] as number) ?? 0)
+    }
+  }
+
+  // Normalize
+  if (totalEduWeight > 0) {
+    for (const key of Object.keys(marginal)) {
+      marginal[key] /= totalEduWeight
+    }
+  }
+
+  // Compute CDF: cumulative probability up to the income value
+  let cumulative = 0
+  for (const bracket of brackets) {
+    const prob = marginal[bracket.key] ?? 0
+    if (income <= bracket.lower) {
+      break
+    }
+    if (income >= bracket.upper) {
+      cumulative += prob
+    } else {
+      // Interpolate within the bracket
+      const fraction = (income - bracket.lower) / (bracket.upper - bracket.lower)
+      cumulative += prob * fraction
+      break
+    }
+  }
+
+  return Math.min(cumulative * 100, 99.9)
+}
+
+/**
+ * Calculate self-assessment score from exact personal attributes.
+ */
+export function calculateSelfScore(self: SelfState): ScoreResult {
+  const criteria: ScoreCriterion[] = []
+  const genders: Gender[] = [self.gender]
+
+  // Age
+  const agePercentile = scoreAge(self.age, genders)
+  criteria.push({
+    id: 'age',
+    label: '年齢',
+    value: `${self.age}歳`,
+    percentile: agePercentile,
+    tier: percentileToTier(agePercentile).tier,
+  })
+
+  // Income (age-group specific)
+  const incomePercentile = scoreIncome(self.income, self.gender, self.age)
+  criteria.push({
+    id: 'income',
+    label: '年収',
+    value: `${self.income}万円`,
+    percentile: incomePercentile,
+    tier: percentileToTier(incomePercentile).tier,
+  })
+
+  // Education
+  const eduLabels: Record<string, string> = {
+    junior_high: '中学卒', high_school: '高校卒', vocational: '専門学校卒',
+    junior_college: '短大・高専卒', university: '大学卒', graduate: '大学院卒',
+  }
+  const eduPercentile = scoreEducation([self.education])
+  criteria.push({
+    id: 'education',
+    label: '学歴',
+    value: eduLabels[self.education] ?? self.education,
+    percentile: eduPercentile,
+    tier: percentileToTier(eduPercentile).tier,
+  })
+
+  // Height
+  const heightPercentile = scoreHeight(self.height, genders)
+  criteria.push({
+    id: 'height',
+    label: '身長',
+    value: `${self.height}cm`,
+    percentile: heightPercentile,
+    tier: percentileToTier(heightPercentile).tier,
+  })
+
+  // BMI
+  const bmiPercentile = scoreBMI(self.weight, self.height)
+  const bmi = self.weight / ((self.height / 100) ** 2)
+  criteria.push({
+    id: 'bmi',
+    label: 'BMI',
+    value: `${bmi.toFixed(1)}`,
+    percentile: bmiPercentile,
+    tier: percentileToTier(bmiPercentile).tier,
+  })
+
+  const product = criteria.reduce((acc, c) => acc * Math.max(c.percentile, 1), 1)
+  const compositePercentile = Math.pow(product, 1 / criteria.length)
+  const { tier, label } = percentileToTier(compositePercentile)
+
+  return { criteria, compositePercentile, tier, tierLabel: label }
 }
