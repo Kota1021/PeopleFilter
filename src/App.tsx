@@ -1,12 +1,25 @@
+import { useMemo } from 'react'
 import { Header } from './components/Layout/Header'
 import { Footer } from './components/Layout/Footer'
 import { FilterPanel } from './components/FilterPanel/FilterPanel'
 import { FunnelChart } from './components/FunnelChart/FunnelChart'
 import { ResultDisplay } from './components/ResultDisplay/ResultDisplay'
+import { ScoreDisplay } from './components/ScoreDisplay/ScoreDisplay'
 import { useCalculation } from './hooks/useCalculation'
+import { useFilterStore } from './store/filterStore'
+import { calculateScore } from './engine/scorer'
 
 function App() {
   const { stages, finalStage } = useCalculation()
+  const filters = useFilterStore()
+
+  const score = useMemo(() => calculateScore(filters), [
+    filters.genders,
+    filters.ageRange,
+    filters.educationLevels,
+    filters.heightRange,
+    filters.weightRange,
+  ])
 
   return (
     <div className="min-h-screen bg-bg-primary">
@@ -23,7 +36,7 @@ function App() {
               </div>
             </div>
 
-            {/* Funnel + Result */}
+            {/* Funnel + Result + Score */}
             <div className="flex-1 min-w-0">
               <div className="bg-bg-surface rounded-2xl border border-border p-5">
                 <h2 className="text-sm font-bold text-text-secondary mb-4">絞り込み結果</h2>
@@ -35,6 +48,8 @@ function App() {
                   />
                 )}
               </div>
+
+              {score && <ScoreDisplay score={score} />}
             </div>
           </div>
         </div>
