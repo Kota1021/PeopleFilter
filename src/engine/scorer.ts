@@ -97,7 +97,6 @@ function scoreEducation(levels: string[]): number {
     graduate: 97,
   }
 
-  // Take the highest level selected (for partner search: lowest selected = worst case)
   let maxScore = 0
   for (const level of levels) {
     maxScore = Math.max(maxScore, tierMap[level] ?? 50)

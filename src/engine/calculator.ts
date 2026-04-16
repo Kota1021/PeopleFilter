@@ -105,7 +105,7 @@ function getIncomeEducationProbability(
       totalProb += eduWeight
     }
   }
-  return totalProb
+  return Math.min(totalProb, 1)
 }
 
 function getHeightProbability(gender: Gender, group: AgeGroup, heightRange: [number, number]): number {

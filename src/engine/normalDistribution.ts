@@ -31,7 +31,8 @@ export function normalRangeProbability(
   mean: number,
   sd: number,
 ): number {
-  if (sd <= 0) return 0
+  if (sd < 0) return 0
+  if (sd === 0) return (mean >= min && mean <= max) ? 1 : 0
   const zMin = (min - mean) / sd
   const zMax = (max - mean) / sd
   return Math.max(0, normalCDF(zMax) - normalCDF(zMin))

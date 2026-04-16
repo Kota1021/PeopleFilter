@@ -43,9 +43,10 @@ describe('normalRangeProbability', () => {
     expect(prob).toBe(0)
   })
 
-  it('returns 0 for sd <= 0', () => {
-    expect(normalRangeProbability(90, 110, 100, 0)).toBe(0)
+  it('sd=0: returns 1 if mean is within range, 0 otherwise', () => {
+    expect(normalRangeProbability(90, 110, 100, 0)).toBe(1)
     expect(normalRangeProbability(90, 110, 100, -5)).toBe(0)
+    expect(normalRangeProbability(110, 120, 100, 0)).toBe(0)
   })
 
   it('height example: P(170<=H<=180) for male 25-29 (mean=171.5, sd=5.8)', () => {
