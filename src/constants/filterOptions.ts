@@ -69,4 +69,4 @@ export const OCCUPATION_OPTIONS = [
 
 export const HEIGHT_RANGE = { min: 140, max: 200 } as const
 export const WEIGHT_RANGE = { min: 30, max: 120 } as const
-export const AGE_RANGE = { min: 18, max: 80 } as const
+export const AGE_RANGE = { min: 0, max: 80 } as const
