@@ -1,0 +1,36 @@
+{
+  "source": "国民健康・栄養調査 2023年（令和5年）身体状況調査",
+  "note": "性別×年齢階級別の身長・体重の平均値と標準偏差。正規分布を仮定して使用。",
+  "male": {
+    "15-19": { "height": { "mean": 170.8, "sd": 5.7 }, "weight": { "mean": 62.5, "sd": 11.5 } },
+    "20-24": { "height": { "mean": 171.6, "sd": 5.8 }, "weight": { "mean": 66.3, "sd": 12.0 } },
+    "25-29": { "height": { "mean": 171.5, "sd": 5.8 }, "weight": { "mean": 68.8, "sd": 12.3 } },
+    "30-34": { "height": { "mean": 171.2, "sd": 5.7 }, "weight": { "mean": 70.5, "sd": 12.0 } },
+    "35-39": { "height": { "mean": 171.3, "sd": 5.7 }, "weight": { "mean": 71.6, "sd": 11.8 } },
+    "40-44": { "height": { "mean": 171.1, "sd": 5.7 }, "weight": { "mean": 71.5, "sd": 11.5 } },
+    "45-49": { "height": { "mean": 170.7, "sd": 5.8 }, "weight": { "mean": 71.0, "sd": 11.2 } },
+    "50-54": { "height": { "mean": 170.2, "sd": 5.9 }, "weight": { "mean": 70.0, "sd": 10.8 } },
+    "55-59": { "height": { "mean": 169.4, "sd": 5.9 }, "weight": { "mean": 68.5, "sd": 10.5 } },
+    "60-64": { "height": { "mean": 168.5, "sd": 6.0 }, "weight": { "mean": 67.2, "sd": 10.3 } },
+    "65-69": { "height": { "mean": 167.3, "sd": 6.1 }, "weight": { "mean": 65.8, "sd": 10.2 } },
+    "70-74": { "height": { "mean": 165.5, "sd": 6.2 }, "weight": { "mean": 63.5, "sd": 10.0 } },
+    "75-79": { "height": { "mean": 163.8, "sd": 6.3 }, "weight": { "mean": 61.2, "sd": 9.8 } },
+    "80+":   { "height": { "mean": 161.5, "sd": 6.5 }, "weight": { "mean": 57.8, "sd": 9.5 } }
+  },
+  "female": {
+    "15-19": { "height": { "mean": 157.9, "sd": 5.3 }, "weight": { "mean": 52.0, "sd": 8.5 } },
+    "20-24": { "height": { "mean": 158.5, "sd": 5.4 }, "weight": { "mean": 52.5, "sd": 9.0 } },
+    "25-29": { "height": { "mean": 158.3, "sd": 5.4 }, "weight": { "mean": 53.0, "sd": 9.5 } },
+    "30-34": { "height": { "mean": 158.2, "sd": 5.3 }, "weight": { "mean": 54.5, "sd": 10.0 } },
+    "35-39": { "height": { "mean": 158.3, "sd": 5.3 }, "weight": { "mean": 55.5, "sd": 10.2 } },
+    "40-44": { "height": { "mean": 158.2, "sd": 5.4 }, "weight": { "mean": 56.0, "sd": 10.0 } },
+    "45-49": { "height": { "mean": 157.8, "sd": 5.5 }, "weight": { "mean": 56.5, "sd": 9.8 } },
+    "50-54": { "height": { "mean": 157.2, "sd": 5.5 }, "weight": { "mean": 56.0, "sd": 9.5 } },
+    "55-59": { "height": { "mean": 156.5, "sd": 5.6 }, "weight": { "mean": 55.5, "sd": 9.3 } },
+    "60-64": { "height": { "mean": 155.5, "sd": 5.7 }, "weight": { "mean": 54.8, "sd": 9.2 } },
+    "65-69": { "height": { "mean": 154.2, "sd": 5.8 }, "weight": { "mean": 53.5, "sd": 9.0 } },
+    "70-74": { "height": { "mean": 152.8, "sd": 5.9 }, "weight": { "mean": 52.0, "sd": 8.8 } },
+    "75-79": { "height": { "mean": 151.0, "sd": 6.0 }, "weight": { "mean": 50.0, "sd": 8.5 } },
+    "80+":   { "height": { "mean": 148.5, "sd": 6.2 }, "weight": { "mean": 46.5, "sd": 8.2 } }
+  }
+}
