@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { Gender, MaritalStatus } from './types'
 
 export interface SelfState {
@@ -33,13 +34,21 @@ const defaultSelf: SelfState = {
   weight: 65,
 }
 
-export const useSelfStore = create<SelfStore>((set) => ({
-  ...defaultSelf,
-  setGender: (g) => set({ gender: g }),
-  setAge: (v) => set({ age: v }),
-  setMaritalStatus: (s) => set({ maritalStatus: s }),
-  setEducation: (e) => set({ education: e }),
-  setIncome: (v) => set({ income: v }),
-  setHeight: (v) => set({ height: v }),
-  setWeight: (v) => set({ weight: v }),
-}))
+export const useSelfStore = create<SelfStore>()(
+  persist(
+    (set) => ({
+      ...defaultSelf,
+      setGender: (g) => set({ gender: g }),
+      setAge: (v) => set({ age: v }),
+      setMaritalStatus: (s) => set({ maritalStatus: s }),
+      setEducation: (e) => set({ education: e }),
+      setIncome: (v) => set({ income: v }),
+      setHeight: (v) => set({ height: v }),
+      setWeight: (v) => set({ weight: v }),
+    }),
+    {
+      name: 'people-filter-self',
+      partialize: ({ setGender, setAge, setMaritalStatus, setEducation, setIncome, setHeight, setWeight, ...state }) => state,
+    },
+  ),
+)

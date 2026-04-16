@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { FilterStore } from './types'
 
 function toggleItem<T>(arr: T[], item: T): T[] {
@@ -22,17 +23,25 @@ const defaultState = {
   prefectures: [] as string[],
 }
 
-export const useFilterStore = create<FilterStore>((set) => ({
-  ...defaultState,
+export const useFilterStore = create<FilterStore>()(
+  persist(
+    (set) => ({
+      ...defaultState,
 
-  toggleGender: (g) => set((s) => ({ genders: toggleAtLeastOne(s.genders, g) })),
-  toggleMaritalStatus: (s) => set((state) => ({ maritalStatuses: toggleAtLeastOne(state.maritalStatuses, s) })),
-  setAgeRange: (r) => set({ ageRange: r }),
-  setIncomeRange: (r) => set({ incomeRange: r }),
-  toggleEducation: (level) => set((s) => ({ educationLevels: toggleItem(s.educationLevels, level) })),
-  setHeightRange: (r) => set({ heightRange: r }),
-  setWeightRange: (r) => set({ weightRange: r }),
-  toggleOccupation: (occ) => set((s) => ({ occupations: toggleItem(s.occupations, occ) })),
-  togglePrefecture: (code) => set((s) => ({ prefectures: toggleItem(s.prefectures, code) })),
-  resetAll: () => set(defaultState),
-}))
+      toggleGender: (g) => set((s) => ({ genders: toggleAtLeastOne(s.genders, g) })),
+      toggleMaritalStatus: (s) => set((state) => ({ maritalStatuses: toggleAtLeastOne(state.maritalStatuses, s) })),
+      setAgeRange: (r) => set({ ageRange: r }),
+      setIncomeRange: (r) => set({ incomeRange: r }),
+      toggleEducation: (level) => set((s) => ({ educationLevels: toggleItem(s.educationLevels, level) })),
+      setHeightRange: (r) => set({ heightRange: r }),
+      setWeightRange: (r) => set({ weightRange: r }),
+      toggleOccupation: (occ) => set((s) => ({ occupations: toggleItem(s.occupations, occ) })),
+      togglePrefecture: (code) => set((s) => ({ prefectures: toggleItem(s.prefectures, code) })),
+      resetAll: () => set(defaultState),
+    }),
+    {
+      name: 'people-filter-search',
+      partialize: ({ toggleGender, toggleMaritalStatus, setAgeRange, setIncomeRange, toggleEducation, setHeightRange, setWeightRange, toggleOccupation, togglePrefecture, resetAll, ...state }) => state,
+    },
+  ),
+)
