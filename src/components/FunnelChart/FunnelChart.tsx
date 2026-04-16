@@ -57,7 +57,7 @@ export function FunnelChart({ stages }: FunnelChartProps) {
               {/* Connector trapezoid */}
               {index > 0 && (
                 <svg
-                  viewBox="0 0 200 8"
+                  viewBox="0 0 100 8"
                   className="w-full h-2 -mb-px"
                   preserveAspectRatio="none"
                 >

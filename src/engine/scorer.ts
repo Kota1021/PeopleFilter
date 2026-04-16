@@ -82,18 +82,18 @@ function scoreAge(age: number, genders: Gender[]): number {
  * Education score: 院卒 > 大卒 > 専門 > 短大・高専 > 高卒 > 中卒
  * Percentile = what fraction of 25-39歳 population has this level or lower.
  * Based on 国勢調査2020 educationDistribution (25-39歳平均):
- *   中学卒 ~4%, 高卒 ~24%, 専門 ~13%, 短大高専 ~7%, 大卒 ~42%, 院卒 ~8%
- * Cumulative from bottom: 中卒4 → 高卒28 → 専門41 → 短大48 → 大卒90 → 院卒98
+ *   中学卒 ~4%, 高卒 ~23%, 専門 ~13%, 短大高専 ~7%, 大卒 ~43%, 院卒 ~8%
+ * Cumulative from bottom: 中卒4 → 高卒27 → 専門40 → 短大47 → 大卒89 → 院卒97
  */
 function scoreEducation(levels: string[]): number {
   if (levels.length === 0) return -1 // not filtered
 
   const tierMap: Record<string, number> = {
     junior_high: 4,
-    high_school: 28,
-    vocational: 48,
-    junior_college: 55,
-    university: 90,
+    high_school: 27,
+    vocational: 40,
+    junior_college: 47,
+    university: 89,
     graduate: 97,
   }
 

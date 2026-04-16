@@ -23,6 +23,7 @@ function App() {
   const partnerScore = useMemo(() => calculateScore(filters), [
     filters.genders,
     filters.ageRange,
+    filters.incomeRange,
     filters.educationLevels,
     filters.heightRange,
     filters.weightRange,
