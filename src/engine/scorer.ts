@@ -158,79 +158,88 @@ function scoreBMI(weight: number, height: number): number {
 }
 
 /**
- * Calculate attractiveness score based on the midpoint of active filters.
+ * Calculate attractiveness score based on the minimum acceptable bar of each filter.
+ * Uses the "worst case you'd accept" for each criterion:
+ *  - Age (younger=better): upper bound of range
+ *  - Income (higher=better): lower bound of range
+ *  - Education (higher=better): lowest selected level
+ *  - Height (taller=better): lower bound of range
+ *  - BMI (normal=better): worst combo from bounds (shortest + heaviest)
  */
 export function calculateScore(filters: FilterState): ScoreResult | null {
-  const { genders, ageRange, educationLevels, heightRange, weightRange } = filters
+  const { genders, ageRange, incomeRange, educationLevels, heightRange, weightRange } = filters
   const criteria: ScoreCriterion[] = []
 
-  // Age: use the midpoint of the selected range (clamped to 18+)
-  const ageMid = Math.max(18, Math.round((ageRange[0] + ageRange[1]) / 2))
-  const agePercentile = scoreAge(ageMid, genders)
+  // Age: younger = better → upper bound = minimum acceptable
+  const ageWorst = Math.max(18, ageRange[1])
+  const agePercentile = scoreAge(ageWorst, genders)
   criteria.push({
     id: 'age',
     label: '年齢',
-    value: `${ageMid}歳`,
+    value: `${ageWorst}歳以下`,
     percentile: agePercentile,
     tier: percentileToTier(agePercentile).tier,
   })
 
-  // Education
-  if (educationLevels.length > 0) {
-    const eduPercentile = scoreEducation(educationLevels)
-    if (eduPercentile >= 0) {
-      const bestLabel: Record<string, string> = {
-        junior_high: '中学卒', high_school: '高校卒', vocational: '専門学校卒',
-        junior_college: '短大・高専卒', university: '大学卒', graduate: '大学院卒',
-      }
-      // Show the highest selected
-      const sorted = [...educationLevels].sort((a, b) =>
-        (scoreEducation([b])) - (scoreEducation([a])))
-      criteria.push({
-        id: 'education',
-        label: '学歴',
-        value: bestLabel[sorted[0]] ?? sorted[0],
-        percentile: eduPercentile,
-        tier: percentileToTier(eduPercentile).tier,
-      })
-    }
+  // Income: higher = better → lower bound = minimum acceptable
+  const isIncomeFiltered = incomeRange[0] > 0 || incomeRange[1] < 2000
+  if (isIncomeFiltered && incomeRange[0] > 0) {
+    const incomeWorst = incomeRange[0]
+    // Use the age upper bound for age-specific income scoring
+    const incomePercentile = scoreIncome(incomeWorst, genders[0] ?? 'male', ageWorst)
+    criteria.push({
+      id: 'income',
+      label: '年収',
+      value: `${incomeWorst}万円以上`,
+      percentile: incomePercentile,
+      tier: percentileToTier(incomePercentile).tier,
+    })
   }
 
-  // Height: midpoint
+  // Education: higher = better → lowest selected level = minimum acceptable
+  if (educationLevels.length > 0) {
+    const eduLabels: Record<string, string> = {
+      junior_high: '中学卒', high_school: '高校卒', vocational: '専門学校卒',
+      junior_college: '短大・高専卒', university: '大学卒', graduate: '大学院卒',
+    }
+    // Find the lowest selected education level
+    const sorted = [...educationLevels].sort((a, b) =>
+      scoreEducation([a]) - scoreEducation([b]))
+    const lowestLevel = sorted[0]
+    const eduPercentile = scoreEducation([lowestLevel])
+    criteria.push({
+      id: 'education',
+      label: '学歴',
+      value: `${eduLabels[lowestLevel] ?? lowestLevel}以上`,
+      percentile: eduPercentile,
+      tier: percentileToTier(eduPercentile).tier,
+    })
+  }
+
+  // Height: taller = better → lower bound = minimum acceptable
   const isHeightFiltered = heightRange[0] > 140 || heightRange[1] < 200
-  if (isHeightFiltered) {
-    const heightMid = Math.round((heightRange[0] + heightRange[1]) / 2)
-    const heightPercentile = scoreHeight(heightMid, genders)
+  if (isHeightFiltered && heightRange[0] > 140) {
+    const heightWorst = heightRange[0]
+    const heightPercentile = scoreHeight(heightWorst, genders)
     criteria.push({
       id: 'height',
       label: '身長',
-      value: `${heightMid}cm`,
+      value: `${heightWorst}cm以上`,
       percentile: heightPercentile,
       tier: percentileToTier(heightPercentile).tier,
     })
   }
 
-  // Weight/BMI: use midpoints of height and weight
+  // BMI: normal=best → worst case = shortest acceptable + heaviest acceptable
   const isWeightFiltered = weightRange[0] > 30 || weightRange[1] < 120
-  if (isWeightFiltered && isHeightFiltered) {
-    const heightMid = Math.round((heightRange[0] + heightRange[1]) / 2)
-    const weightMid = Math.round((weightRange[0] + weightRange[1]) / 2)
-    const bmiPercentile = scoreBMI(weightMid, heightMid)
-    const bmi = weightMid / ((heightMid / 100) ** 2)
-    criteria.push({
-      id: 'bmi',
-      label: 'BMI',
-      value: `${bmi.toFixed(1)}`,
-      percentile: bmiPercentile,
-      tier: percentileToTier(bmiPercentile).tier,
-    })
-  } else if (isWeightFiltered) {
-    // No height filter, use average height for BMI calc
-    const avgHeight = genders.includes('male') && genders.includes('female') ? 165
-      : genders.includes('male') ? 171 : 158
-    const weightMid = Math.round((weightRange[0] + weightRange[1]) / 2)
-    const bmiPercentile = scoreBMI(weightMid, avgHeight)
-    const bmi = weightMid / ((avgHeight / 100) ** 2)
+  if (isWeightFiltered) {
+    const heightForBmi = isHeightFiltered && heightRange[0] > 140
+      ? heightRange[0] // shortest acceptable
+      : genders.includes('male') && genders.includes('female') ? 165
+        : genders.includes('male') ? 171 : 158
+    const weightWorst = weightRange[1] < 120 ? weightRange[1] : weightRange[0] // heaviest or lightest bound
+    const bmiPercentile = scoreBMI(weightWorst, heightForBmi)
+    const bmi = weightWorst / ((heightForBmi / 100) ** 2)
     criteria.push({
       id: 'bmi',
       label: 'BMI',
@@ -240,7 +249,8 @@ export function calculateScore(filters: FilterState): ScoreResult | null {
     })
   }
 
-  if (criteria.length === 0) return null
+  // Age alone is not meaningful enough for a score — require at least one other criterion
+  if (criteria.length <= 1) return null
 
   // Composite: geometric mean of percentiles (penalizes low scores more than arithmetic mean)
   const product = criteria.reduce((acc, c) => acc * Math.max(c.percentile, 1), 1)
