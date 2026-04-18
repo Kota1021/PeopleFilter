@@ -31,18 +31,18 @@ describe('marriageProbabilityByAge (5年先確率)', () => {
     }
   })
 
-  it('matches the reference article formula for male 25-29 (≈33.5%)', () => {
-    // (0.761 - 0.506) / 0.761 = 33.51%
+  it('matches the reference article formula for male 25-29 (≈32.2%)', () => {
+    // 不詳補完値: (0.764 - 0.518) / 0.764 = 32.20%
     // konkatsu-ane.com cites 35.41% for 25歳 male (2015→2020 cohort-tracked);
     // our 断面 approximation is expected to be within a few points.
     const p = data.find((d) => d.ageLabel === '25-29')!
-    expect(p.male!).toBeCloseTo(33.51, 1)
+    expect(p.male!).toBeCloseTo(32.20, 1)
   })
 
-  it('matches the reference article formula for male 40-44 (≈16.6%)', () => {
-    // (0.277 - 0.231) / 0.277 = 16.61%
+  it('matches the reference article formula for male 40-44 (≈10.4%)', () => {
+    // 不詳補完値: (0.335 - 0.300) / 0.335 = 10.45%
     const p = data.find((d) => d.ageLabel === '40-44')!
-    expect(p.male!).toBeCloseTo(16.61, 1)
+    expect(p.male!).toBeCloseTo(10.45, 1)
   })
 
   it('women in 20s have higher 5-year marriage probability than men', () => {
