@@ -68,14 +68,14 @@ StatsView → statsByAge.ts → LineChart (年齢別指標)
 
 政府統計を前処理したJSON。git管理。
 
-| File | Source | Content |
-|---|---|---|
-| `population.json` | 国勢調査 2020 | 性別×年齢5歳階級の総人口 + 配偶関係比率（未婚/既婚/離別/死別） |
-| `income-education.json` | 就業構造基本調査 2022 + 国勢調査 | 配偶関係別の有業率 + 年収×学歴同時分布（未婚者 `distribution` / 既婚者 `distributionMarried`）+ 学歴分布 |
-| `height-weight.json` | 国民健康・栄養調査 2023 | 性別×年齢別の身長・体重（平均+標準偏差） |
-| `occupation.json` | 国勢調査 2020 | 性別×年齢別の職業分布 |
-| `prefecture.json` | 国勢調査 2020 | 47都道府県の人口比率 |
-| `smoking.json` | 国民健康・栄養調査 2023 | 10歳階級×性別の習慣的喫煙率（%）。20歳以上が対象 |
+| File | Source | URL | Content |
+|---|---|---|---|
+| `population.json` | 国勢調査 2020 人口等基本集計 | [e-Stat](https://www.e-stat.go.jp/stat-search/files?tclass=000001125102) / [配偶関係 表4-5-1](https://www.e-stat.go.jp/stat-search/database?statdisp_id=0003445238) | 性別×年齢5歳階級の総人口 + 配偶関係比率（未婚/既婚/離別/死別） |
+| `income-education.json` | 就業構造基本調査 2022 表04000 + 国勢調査 2020 表11-1 | [就調表04000](https://www.e-stat.go.jp/stat-search/database?statdisp_id=0004008157) / [国調表11-1](https://www.e-stat.go.jp/stat-search/database?statdisp_id=0003450581) | 配偶関係別の有業率 + 年収×学歴同時分布（未婚者 `distribution` / 既婚者 `distributionMarried`）+ 学歴分布 |
+| `height-weight.json` | 国民健康・栄養調査 2023 第14表 | [e-Stat](https://www.e-stat.go.jp/stat-search/files?stat_infid=000040275973) | 性別×年齢別の身長・体重（平均+標準偏差） |
+| `occupation.json` | 国勢調査 2020 表9-3-1 | [e-Stat](https://www.e-stat.go.jp/stat-search/database?statdisp_id=0003450693) | 性別×年齢別の職業分布（12大分類） |
+| `prefecture.json` | 国勢調査 2020 人口等基本集計 | [結果概要PDF](https://www.stat.go.jp/data/kokusei/2020/kekka/pdf/outline_01.pdf) | 47都道府県の人口比率（原人口+ratio） |
+| `smoking.json` | 国民健康・栄養調査 2023 第73表 | [e-Stat](https://www.e-stat.go.jp/stat-search/files?stat_infid=000040276090) | 10歳階級×性別の習慣的喫煙率（%）。20歳以上が対象 |
 
 ### State (`src/store/`)
 
