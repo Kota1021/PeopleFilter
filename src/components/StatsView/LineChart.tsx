@@ -7,6 +7,8 @@ interface LineChartProps {
   yUnit: string
   formatValue?: (v: number) => string
   yMinFloor?: number
+  onPointClick?: (point: AgePoint) => void
+  highlightIndex?: number | null
 }
 
 const MALE_COLOR = '#06b6d4'
@@ -32,7 +34,7 @@ function niceTicks(min: number, max: number, count = 5): number[] {
   return ticks
 }
 
-export function LineChart({ points, yUnit, formatValue, yMinFloor }: LineChartProps) {
+export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick, highlightIndex }: LineChartProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
 
   const chart = useMemo(() => {
@@ -215,6 +217,18 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor }: LineChartPr
                   strokeWidth={1.5}
                 />
               )}
+              {/* Highlight band */}
+              {highlightIndex === i && (
+                <rect
+                  x={cx - 14}
+                  y={chart.padTop}
+                  width={28}
+                  height={chart.innerH}
+                  fill="var(--color-funnel-end)"
+                  opacity={0.08}
+                  rx={4}
+                />
+              )}
               {/* Wide invisible hover target */}
               <rect
                 x={cx - 16}
@@ -222,7 +236,9 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor }: LineChartPr
                 width={32}
                 height={chart.innerH}
                 fill="transparent"
+                style={onPointClick ? { cursor: 'pointer' } : undefined}
                 onMouseEnter={() => setHoverIdx(i)}
+                onClick={onPointClick ? () => onPointClick(p) : undefined}
               />
             </g>
           )

@@ -83,8 +83,7 @@ function computeGroupAvgIncome(gender: Gender, group: AgeGroup): number | null {
 }
 
 const WORK_AGE_GROUPS: AgeGroup[] = [
-  '20-24', '25-29', '30-34', '35-39', '40-44', '45-49',
-  '50-54', '55-59', '60-64', '65-69',
+  '20-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50-54',
 ]
 
 export function averageIncomeByAge(): AgePoint[] {
@@ -112,6 +111,113 @@ export function averageHeightByAge(): AgePoint[] {
     })
   }
   return result
+}
+
+export interface IncomeBandPoint {
+  band: string
+  label: string
+  lower: number
+  upper: number
+  male: number
+  female: number
+}
+
+const INCOME_BANDS: Array<{ key: string; label: string; lower: number; upper: number }> = [
+  { key: '~100', label: '〜100', lower: 0, upper: 100 },
+  { key: '100-200', label: '100-200', lower: 100, upper: 200 },
+  { key: '200-300', label: '200-300', lower: 200, upper: 300 },
+  { key: '300-400', label: '300-400', lower: 300, upper: 400 },
+  { key: '400-500', label: '400-500', lower: 400, upper: 500 },
+  { key: '500-600', label: '500-600', lower: 500, upper: 600 },
+  { key: '600-700', label: '600-700', lower: 600, upper: 700 },
+  { key: '700-800', label: '700-800', lower: 700, upper: 800 },
+  { key: '800-900', label: '800-900', lower: 800, upper: 900 },
+  { key: '900-1000', label: '900-1000', lower: 900, upper: 1000 },
+  { key: '1000-1500', label: '1000-1500', lower: 1000, upper: 1500 },
+  { key: '1500+', label: '1500+', lower: 1500, upper: 2000 },
+]
+
+function groupInRange(group: AgeGroup, range: [number, number]): boolean {
+  const start = ageGroupStart(group)
+  const end = group === '80+' ? 89 : start + 4
+  return end >= range[0] && start <= range[1]
+}
+
+export const INCOME_AGE_RANGE = { min: 20, max: 54 }
+
+export function incomeDistributionByAge(ageRange: [number, number]): IncomeBandPoint[] {
+  const groups = WORK_AGE_GROUPS.filter((g) => groupInRange(g, ageRange))
+
+  const computeByGender = (gender: Gender) => {
+    const counts: Record<string, number> = {}
+    let total = 0
+    for (const group of groups) {
+      const totalPop = get(populationData, 'total', gender, group) as number | undefined
+      const marital = get(populationData, 'maritalStatus', gender, group)
+      const eduDist = get(incomeEducationData, 'educationDistribution', gender, group)
+      if (!totalPop || !marital || !eduDist) continue
+
+      const branches: Array<[string, number]> = [
+        ['unmarried', marital.unmarried ?? 0],
+        ['married', (marital.married ?? 0) + (marital.divorced ?? 0) + (marital.widowed ?? 0)],
+      ]
+
+      for (const [msKey, msRatio] of branches) {
+        if (msRatio === 0) continue
+        const distKey = msKey === 'unmarried' ? 'distribution' : 'distributionMarried'
+        const dist = get(incomeEducationData, distKey, gender, group)
+        const empRate = get(incomeEducationData, 'employmentRate', msKey, gender, group) as number | undefined
+        if (!dist || empRate == null) continue
+
+        for (const [edu, eduWeightRaw] of Object.entries(eduDist)) {
+          const eduWeight = eduWeightRaw as number
+          const incomeDist = dist[edu]
+          if (!incomeDist) continue
+          for (const [band, probRaw] of Object.entries(incomeDist)) {
+            const count = totalPop * msRatio * empRate * eduWeight * (probRaw as number)
+            counts[band] = (counts[band] ?? 0) + count
+            total += count
+          }
+        }
+      }
+    }
+    return { counts, total }
+  }
+
+  const male = computeByGender('male')
+  const female = computeByGender('female')
+
+  return INCOME_BANDS.map(({ key, label, lower, upper }) => ({
+    band: key,
+    label,
+    lower,
+    upper,
+    male: male.total > 0 ? (male.counts[key] ?? 0) / male.total : 0,
+    female: female.total > 0 ? (female.counts[key] ?? 0) / female.total : 0,
+  }))
+}
+
+export interface CDFPoint {
+  income: number
+  male: number
+  female: number
+}
+
+const CDF_THRESHOLDS = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000]
+
+export function incomeCDFByAge(ageRange: [number, number]): CDFPoint[] {
+  const bands = incomeDistributionByAge(ageRange)
+  return CDF_THRESHOLDS.map((t) => {
+    let male = 0
+    let female = 0
+    for (const b of bands) {
+      if (b.lower >= t) {
+        male += b.male
+        female += b.female
+      }
+    }
+    return { income: t, male: male * 100, female: female * 100 }
+  })
 }
 
 export function smokingRateByAge(): AgePoint[] {

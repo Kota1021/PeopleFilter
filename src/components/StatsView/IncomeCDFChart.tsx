@@ -1,0 +1,266 @@
+import { useMemo, useState } from 'react'
+import { motion } from 'motion/react'
+import type { CDFPoint } from '../../engine/statsByAge'
+
+interface IncomeCDFChartProps {
+  points: CDFPoint[]
+}
+
+const MALE_COLOR = '#06b6d4'
+const FEMALE_COLOR = '#f43f5e'
+const REFERENCE_PERCENTILES = [10, 25, 50]
+
+export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+
+  const chart = useMemo(() => {
+    const width = 720
+    const height = 320
+    const padLeft = 52
+    const padRight = 16
+    const padTop = 20
+    const padBottom = 44
+
+    const innerW = width - padLeft - padRight
+    const innerH = height - padTop - padBottom
+
+    const xMin = Math.min(...points.map(p => p.income))
+    const xMax = Math.max(...points.map(p => p.income))
+    const yMin = 0
+    const yMax = 100
+
+    const xOf = (v: number) => padLeft + ((v - xMin) / (xMax - xMin)) * innerW
+    const yOf = (v: number) => padTop + innerH - ((v - yMin) / (yMax - yMin)) * innerH
+
+    const buildPath = (series: 'male' | 'female') =>
+      points
+        .map((p, i) => `${i === 0 ? 'M' : 'L'} ${xOf(p.income).toFixed(2)} ${yOf(p[series]).toFixed(2)}`)
+        .join(' ')
+
+    const xTicks = [0, 500, 1000, 1500, 2000]
+    const yTicks = [0, 25, 50, 75, 100]
+
+    return {
+      width, height, padLeft, padRight, padTop, padBottom, innerW, innerH,
+      xOf, yOf, xTicks, yTicks,
+      malePath: buildPath('male'),
+      femalePath: buildPath('female'),
+    }
+  }, [points])
+
+  // Find income threshold where each gender crosses a reference percentile
+  const crossings = useMemo(() => {
+    const result: Record<number, { male: number | null; female: number | null }> = {}
+    for (const pct of REFERENCE_PERCENTILES) {
+      result[pct] = {
+        male: interpolateIncomeAt(points, pct, 'male'),
+        female: interpolateIncomeAt(points, pct, 'female'),
+      }
+    }
+    return result
+  }, [points])
+
+  return (
+    <div className="w-full">
+      <div className="flex gap-4 text-xs text-text-secondary mb-2 justify-end pr-2">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-0.5 rounded-full" style={{ backgroundColor: MALE_COLOR }} />
+          男性
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-0.5 rounded-full" style={{ backgroundColor: FEMALE_COLOR }} />
+          女性
+        </div>
+      </div>
+
+      <svg
+        viewBox={`0 0 ${chart.width} ${chart.height}`}
+        className="w-full h-auto"
+        onMouseLeave={() => setHoverIdx(null)}
+      >
+        {/* Y grid + labels */}
+        {chart.yTicks.map((t) => {
+          const y = chart.yOf(t)
+          return (
+            <g key={`yt-${t}`}>
+              <line
+                x1={chart.padLeft}
+                x2={chart.width - chart.padRight}
+                y1={y}
+                y2={y}
+                stroke="var(--color-border)"
+                strokeWidth={0.5}
+                opacity={0.6}
+              />
+              <text
+                x={chart.padLeft - 6}
+                y={y}
+                textAnchor="end"
+                dominantBaseline="central"
+                fontSize={10}
+                fill="var(--color-text-muted)"
+              >
+                {t}%
+              </text>
+            </g>
+          )
+        })}
+
+        {/* Reference percentile lines */}
+        {REFERENCE_PERCENTILES.map((pct) => {
+          const y = chart.yOf(pct)
+          return (
+            <line
+              key={`ref-${pct}`}
+              x1={chart.padLeft}
+              x2={chart.width - chart.padRight}
+              y1={y}
+              y2={y}
+              stroke="var(--color-funnel-end)"
+              strokeWidth={0.5}
+              strokeDasharray="2 4"
+              opacity={0.35}
+            />
+          )
+        })}
+
+        <text x={chart.padLeft - 44} y={chart.padTop - 4} fontSize={10} fill="var(--color-text-muted)">
+          上位%
+        </text>
+
+        {/* X axis labels */}
+        {chart.xTicks.map((t) => (
+          <text
+            key={`xt-${t}`}
+            x={chart.xOf(t)}
+            y={chart.height - chart.padBottom + 16}
+            textAnchor="middle"
+            fontSize={10}
+            fill="var(--color-text-muted)"
+          >
+            {t === 0 ? '0' : `${t}`}
+          </text>
+        ))}
+        <text
+          x={(chart.padLeft + (chart.width - chart.padRight)) / 2}
+          y={chart.height - 6}
+          textAnchor="middle"
+          fontSize={10}
+          fill="var(--color-text-muted)"
+        >
+          年収（万円）
+        </text>
+
+        {/* Lines */}
+        <motion.path
+          d={chart.malePath}
+          fill="none"
+          stroke={MALE_COLOR}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+        />
+        <motion.path
+          d={chart.femalePath}
+          fill="none"
+          stroke={FEMALE_COLOR}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
+        />
+
+        {/* Points + hover */}
+        {points.map((p, i) => {
+          const cx = chart.xOf(p.income)
+          const isHover = hoverIdx === i
+          return (
+            <g key={`pt-${i}`}>
+              <circle cx={cx} cy={chart.yOf(p.male)} r={isHover ? 4 : 3} fill={MALE_COLOR} stroke="var(--color-bg-surface)" strokeWidth={1.5} />
+              <circle cx={cx} cy={chart.yOf(p.female)} r={isHover ? 4 : 3} fill={FEMALE_COLOR} stroke="var(--color-bg-surface)" strokeWidth={1.5} />
+              <rect
+                x={cx - 18}
+                y={chart.padTop}
+                width={36}
+                height={chart.innerH}
+                fill="transparent"
+                onMouseEnter={() => setHoverIdx(i)}
+              />
+            </g>
+          )
+        })}
+
+        {/* Tooltip */}
+        {hoverIdx != null && (() => {
+          const p = points[hoverIdx]
+          const cx = chart.xOf(p.income)
+          const boxW = 120
+          const boxH = 58
+          const flip = cx + boxW + 8 > chart.width - chart.padRight
+          const bx = flip ? cx - boxW - 8 : cx + 8
+          const by = chart.padTop + 8
+          return (
+            <g pointerEvents="none">
+              <line x1={cx} x2={cx} y1={chart.padTop} y2={chart.height - chart.padBottom} stroke="var(--color-text-muted)" strokeDasharray="2 3" strokeWidth={0.5} />
+              <rect x={bx} y={by} width={boxW} height={boxH} rx={6} fill="var(--color-bg-primary)" stroke="var(--color-border)" />
+              <text x={bx + 8} y={by + 14} fontSize={10} fill="var(--color-text-secondary)" fontWeight={600}>
+                {p.income === 0 ? '年収問わず' : `${p.income}万円以上`}
+              </text>
+              <circle cx={bx + 12} cy={by + 30} r={3} fill={MALE_COLOR} />
+              <text x={bx + 20} y={by + 30} fontSize={10} fill="var(--color-text-primary)" dominantBaseline="central">
+                男性 上位 {p.male.toFixed(1)}%
+              </text>
+              <circle cx={bx + 12} cy={by + 44} r={3} fill={FEMALE_COLOR} />
+              <text x={bx + 20} y={by + 44} fontSize={10} fill="var(--color-text-primary)" dominantBaseline="central">
+                女性 上位 {p.female.toFixed(1)}%
+              </text>
+            </g>
+          )
+        })()}
+      </svg>
+
+      {/* Reference percentile readout */}
+      <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+        {REFERENCE_PERCENTILES.map((pct) => (
+          <div key={pct} className="rounded-md border border-border bg-bg-surface-hover/20 px-2.5 py-1.5">
+            <div className="text-text-muted mb-0.5">上位 {pct}%</div>
+            <div className="flex flex-col gap-0.5">
+              <div className="tabular-nums" style={{ color: MALE_COLOR }}>
+                男性: {formatCross(crossings[pct].male)}
+              </div>
+              <div className="tabular-nums" style={{ color: FEMALE_COLOR }}>
+                女性: {formatCross(crossings[pct].female)}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function interpolateIncomeAt(points: CDFPoint[], targetPct: number, series: 'male' | 'female'): number | null {
+  // points are monotonically decreasing in y (top%). Find segment where the target lies.
+  for (let i = 0; i < points.length - 1; i++) {
+    const y0 = points[i][series]
+    const y1 = points[i + 1][series]
+    if (y0 >= targetPct && y1 <= targetPct) {
+      const x0 = points[i].income
+      const x1 = points[i + 1].income
+      if (y0 === y1) return x0
+      const t = (y0 - targetPct) / (y0 - y1)
+      return x0 + (x1 - x0) * t
+    }
+  }
+  return null
+}
+
+function formatCross(v: number | null): string {
+  if (v == null) return '—'
+  return `${Math.round(v)}万円以上`
+}
