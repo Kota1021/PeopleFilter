@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { calculateFunnel } from '../../src/engine/calculator'
-import type { FilterState } from '../../src/store/types'
+import { calculateFunnel, compatibilityCoefficient } from '../../src/engine/calculator'
+import type { Compatibility, FilterState } from '../../src/store/types'
 
 const baseFilters: FilterState = {
   genders: ['male'],
@@ -119,5 +119,103 @@ describe('calculateFunnel', () => {
     const uRate = uIncome.count / uAge.count
     const mRate = mIncome.count / mAge.count
     expect(mRate).toBeGreaterThan(uRate)
+  })
+
+  it('non-smoker filter reduces count and is stronger for men (higher smoker rate)', () => {
+    const menBase: FilterState = { ...baseFilters, genders: ['male'] }
+    const womenBase: FilterState = { ...baseFilters, genders: ['female'] }
+    const menWith: FilterState = { ...menBase, smokingPref: 'nonsmoker' }
+    const womenWith: FilterState = { ...womenBase, smokingPref: 'nonsmoker' }
+
+    const menWithStages = calculateFunnel(menWith)
+    const menSmokingStage = menWithStages.find(s => s.id === 'smoking')!
+    expect(menSmokingStage).toBeDefined()
+
+    const menAge = calculateFunnel(menBase).find(s => s.id === 'age')!
+    const womenAge = calculateFunnel(womenBase).find(s => s.id === 'age')!
+    const menWithFinal = menSmokingStage.count / menAge.count
+    const womenWithFinal = calculateFunnel(womenWith).find(s => s.id === 'smoking')!.count / womenAge.count
+    // Male non-smoker share is lower than female → filter reduces men more
+    expect(menWithFinal).toBeLessThan(womenWithFinal)
+  })
+
+  it('children-desire "no" is more selective than "want" for 20s', () => {
+    const want: FilterState = { ...baseFilters, childrenDesire: 'want' }
+    const no: FilterState = { ...baseFilters, childrenDesire: 'no' }
+    const wantFinal = calculateFunnel(want).find(s => s.id === 'children-desire')!
+    const noFinal = calculateFunnel(no).find(s => s.id === 'children-desire')!
+    expect(noFinal.count).toBeLessThan(wantFinal.count)
+  })
+
+  it('drinking "none" is more selective than "light"', () => {
+    const light: FilterState = { ...baseFilters, drinkingPref: 'light' }
+    const none: FilterState = { ...baseFilters, drinkingPref: 'none' }
+    const lightFinal = calculateFunnel(light).find(s => s.id === 'drinking')!
+    const noneFinal = calculateFunnel(none).find(s => s.id === 'drinking')!
+    expect(noneFinal.count).toBeLessThan(lightFinal.count)
+  })
+
+  it('lifestyle filters have no effect on under-20 age ranges (no data)', () => {
+    const base: FilterState = { ...baseFilters, ageRange: [15, 19] }
+    const withFilter: FilterState = {
+      ...base,
+      smokingPref: 'nonsmoker',
+      drinkingPref: 'none',
+      childrenDesire: 'want',
+    }
+    const baseAge = calculateFunnel(base).find(s => s.id === 'age')!
+    const filteredStages = calculateFunnel(withFilter)
+    const smoking = filteredStages.find(s => s.id === 'smoking')!
+    const drinking = filteredStages.find(s => s.id === 'drinking')!
+    const children = filteredStages.find(s => s.id === 'children-desire')!
+    expect(smoking.count).toBe(baseAge.count)
+    expect(drinking.count).toBe(baseAge.count)
+    expect(children.count).toBe(baseAge.count)
+  })
+
+  it('compatibility coefficient stage only appears when at least one slider > 0', () => {
+    const zeroCompat = calculateFunnel(baseFilters)
+    expect(zeroCompat.find(s => s.id === 'compatibility')).toBeUndefined()
+
+    const withCompat: FilterState = {
+      ...baseFilters,
+      compatibility: { ...baseFilters.compatibility, looks: 3 },
+    }
+    const stages = calculateFunnel(withCompat)
+    const compat = stages.find(s => s.id === 'compatibility')!
+    expect(compat).toBeDefined()
+    const prev = stages[stages.length - 2]
+    expect(compat.count).toBeLessThan(prev.count)
+  })
+})
+
+describe('compatibilityCoefficient', () => {
+  const zero: Compatibility = { looks: 0, money: 0, personality: 0, food: 0, values: 0, lifestyle: 0 }
+
+  it('returns 1.0 when all axes are 0', () => {
+    expect(compatibilityCoefficient(zero)).toBe(1)
+  })
+
+  it('is strictly decreasing as any axis rises', () => {
+    const a = compatibilityCoefficient({ ...zero, looks: 1 })
+    const b = compatibilityCoefficient({ ...zero, looks: 2 })
+    const c = compatibilityCoefficient({ ...zero, looks: 5 })
+    expect(a).toBeGreaterThan(b)
+    expect(b).toBeGreaterThan(c)
+    expect(c).toBeGreaterThan(0)
+  })
+
+  it('maps 0/1/2/3/4/5 to 1.0/0.7/0.5/0.3/0.15/0.05 on a single axis', () => {
+    expect(compatibilityCoefficient({ ...zero, looks: 0 })).toBeCloseTo(1.0, 5)
+    expect(compatibilityCoefficient({ ...zero, looks: 1 })).toBeCloseTo(0.7, 5)
+    expect(compatibilityCoefficient({ ...zero, looks: 2 })).toBeCloseTo(0.5, 5)
+    expect(compatibilityCoefficient({ ...zero, looks: 3 })).toBeCloseTo(0.3, 5)
+    expect(compatibilityCoefficient({ ...zero, looks: 4 })).toBeCloseTo(0.15, 5)
+    expect(compatibilityCoefficient({ ...zero, looks: 5 })).toBeCloseTo(0.05, 5)
+  })
+
+  it('multiplies across axes', () => {
+    const both: Compatibility = { ...zero, looks: 2, money: 2 }
+    expect(compatibilityCoefficient(both)).toBeCloseTo(0.25, 5)
   })
 })
