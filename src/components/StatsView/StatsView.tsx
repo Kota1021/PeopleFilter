@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react'
 import { LineChart } from './LineChart'
-import { IncomeHistogram } from './IncomeHistogram'
 import { IncomeCDFChart } from './IncomeCDFChart'
 import { RangeSlider } from '../shared/RangeSlider'
 import {
   averageIncomeByAge,
   averageHeightByAge,
   smokingRateByAge,
-  incomeDistributionByAge,
   incomeCDFByAge,
   INCOME_AGE_RANGE,
 } from '../../engine/statsByAge'
@@ -18,7 +16,6 @@ export function StatsView() {
   const smokingData = useMemo(() => smokingRateByAge(), [])
 
   const [ageRange, setAgeRange] = useState<[number, number]>([30, 39])
-  const histogramBands = useMemo(() => incomeDistributionByAge(ageRange), [ageRange])
   const cdfPoints = useMemo(() => incomeCDFByAge(ageRange), [ageRange])
 
   const highlightIndex = useMemo(() => {
@@ -32,7 +29,7 @@ export function StatsView() {
     <div className="flex flex-col gap-5">
       <StatsCard
         title="年齢別 平均年収"
-        description="有業者の平均年収。配偶関係・学歴で加重平均したもの。点をクリックするとその年代の年収分布を表示。"
+        description="有業者の平均年収。配偶関係・学歴で加重平均したもの。点をクリックするとその年代の詳細を表示。"
         source="就業構造基本調査 2022 + 国勢調査 2020"
       >
         <LineChart
@@ -46,8 +43,8 @@ export function StatsView() {
       </StatsCard>
 
       <StatsCard
-        title={`年収分布（${ageRange[0]}〜${ageRange[1]}歳）`}
-        description="選択した年齢帯の有業者のうち、各年収帯に属する人の割合。"
+        title={`上位%で見る年収（${ageRange[0]}〜${ageRange[1]}歳）`}
+        description="横軸の年収以上に該当する人が有業者全体の何%か。左上ほど上位、右下ほど下位。"
         source="就業構造基本調査 2022 + 国勢調査 2020"
       >
         <div className="mb-4">
@@ -61,14 +58,6 @@ export function StatsView() {
             unit="歳"
           />
         </div>
-        <IncomeHistogram bands={histogramBands} />
-      </StatsCard>
-
-      <StatsCard
-        title={`上位%で見る年収（${ageRange[0]}〜${ageRange[1]}歳）`}
-        description="横軸の年収以上に該当する人が有業者全体の何%か。左上ほど上位、右下ほど下位。"
-        source="就業構造基本調査 2022 + 国勢調査 2020"
-      >
         <IncomeCDFChart points={cdfPoints} />
       </StatsCard>
 
