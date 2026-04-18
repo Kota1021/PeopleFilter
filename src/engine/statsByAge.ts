@@ -255,6 +255,33 @@ export function heightCDFByAge(ageRange: [number, number]): CDFPoint[] {
   }))
 }
 
+// 現在未婚の人が「50-54歳までに一度でも結婚する」確率を年齢階級別に算出。
+// 分母は current 未婚率、分子は「50-54歳より上回っている部分」。
+// 50歳時点の未婚率は生涯未婚率の代理指標として社会統計で用いられる。
+const MARRIAGE_AGE_GROUPS: AgeGroup[] = [
+  '15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50-54',
+]
+const MARRIAGE_TERMINAL_GROUP: AgeGroup = '50-54'
+
+export function marriageProbabilityByAge(): AgePoint[] {
+  const maleTerminal = get(populationData, 'maritalStatus', 'male', MARRIAGE_TERMINAL_GROUP, 'unmarried') as number
+  const femaleTerminal = get(populationData, 'maritalStatus', 'female', MARRIAGE_TERMINAL_GROUP, 'unmarried') as number
+
+  const probFor = (gender: Gender, group: AgeGroup, terminal: number): number | null => {
+    const unmarried = get(populationData, 'maritalStatus', gender, group, 'unmarried') as number | undefined
+    if (unmarried == null || unmarried <= 0) return null
+    return Math.max(0, (unmarried - terminal) / unmarried) * 100
+  }
+
+  return MARRIAGE_AGE_GROUPS.map((group) => ({
+    ageStart: ageGroupStart(group),
+    ageEnd: ageGroupStart(group) + 4,
+    ageLabel: group,
+    male: probFor('male', group, maleTerminal),
+    female: probFor('female', group, femaleTerminal),
+  }))
+}
+
 export function smokingRateByAge(): AgePoint[] {
   const groups = smokingData.ageGroups as Record<string, { male: number; female: number }>
   return Object.entries(groups).map(([key, val]) => {

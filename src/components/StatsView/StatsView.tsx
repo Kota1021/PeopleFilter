@@ -6,6 +6,7 @@ import {
   averageIncomeByAge,
   averageHeightByAge,
   smokingRateByAge,
+  marriageProbabilityByAge,
   incomeCDFByAge,
   heightCDFByAge,
   INCOME_AGE_RANGE,
@@ -16,6 +17,7 @@ export function StatsView() {
   const incomeData = useMemo(() => averageIncomeByAge(), [])
   const heightData = useMemo(() => averageHeightByAge(), [])
   const smokingData = useMemo(() => smokingRateByAge(), [])
+  const marriageData = useMemo(() => marriageProbabilityByAge(), [])
 
   const [incomeAgeRange, setIncomeAgeRange] = useState<[number, number]>([30, 39])
   const [heightAgeRange, setHeightAgeRange] = useState<[number, number]>([20, 39])
@@ -113,6 +115,19 @@ export function StatsView() {
           xTicks={[140, 150, 160, 170, 180, 190, 200]}
           xAxisLabel="身長（cm）"
           formatThreshold={(x) => `${x.toFixed(1)}cm以上`}
+        />
+      </StatsCard>
+
+      <StatsCard
+        title="年齢別 今後結婚する確率"
+        description="現在未婚の人が50歳までに一度でも結婚する確率。50歳時点の未婚率（生涯未婚率の代理指標）を基準に、各年齢階級の未婚率との差分から算出。"
+        source="国勢調査 2020"
+      >
+        <LineChart
+          points={marriageData}
+          yUnit="%"
+          formatValue={(v) => `${v.toFixed(1)}`}
+          yMinFloor={0}
         />
       </StatsCard>
 
