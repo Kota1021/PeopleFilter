@@ -98,7 +98,7 @@ export const useFilterStore = create<FilterStore>()(
     {
       name: 'people-filter-search',
       version: 2,
-      migrate: () => defaultState,
+      migrate: (persisted) => ({ ...defaultState, ...safeMerge(persisted) }),
       partialize: (state) => ({
         genders: state.genders,
         maritalStatuses: state.maritalStatuses,
