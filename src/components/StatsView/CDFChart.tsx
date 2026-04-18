@@ -2,15 +2,24 @@ import { useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import type { CDFPoint } from '../../engine/statsByAge'
 
-interface IncomeCDFChartProps {
+interface CDFChartProps {
   points: CDFPoint[]
+  xTicks: number[]
+  xAxisLabel: string
+  formatThreshold: (x: number) => string
+  referencePercentiles?: number[]
 }
 
 const MALE_COLOR = '#06b6d4'
 const FEMALE_COLOR = '#f43f5e'
-const REFERENCE_PERCENTILES = [10, 25, 50]
 
-export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
+export function CDFChart({
+  points,
+  xTicks,
+  xAxisLabel,
+  formatThreshold,
+  referencePercentiles = [10, 25, 50],
+}: CDFChartProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
 
   const chart = useMemo(() => {
@@ -24,8 +33,8 @@ export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
     const innerW = width - padLeft - padRight
     const innerH = height - padTop - padBottom
 
-    const xMin = Math.min(...points.map(p => p.income))
-    const xMax = Math.max(...points.map(p => p.income))
+    const xMin = Math.min(...points.map(p => p.x))
+    const xMax = Math.max(...points.map(p => p.x))
     const yMin = 0
     const yMax = 100
 
@@ -34,31 +43,29 @@ export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
 
     const buildPath = (series: 'male' | 'female') =>
       points
-        .map((p, i) => `${i === 0 ? 'M' : 'L'} ${xOf(p.income).toFixed(2)} ${yOf(p[series]).toFixed(2)}`)
+        .map((p, i) => `${i === 0 ? 'M' : 'L'} ${xOf(p.x).toFixed(2)} ${yOf(p[series]).toFixed(2)}`)
         .join(' ')
 
-    const xTicks = [0, 500, 1000, 1500, 2000]
     const yTicks = [0, 25, 50, 75, 100]
 
     return {
       width, height, padLeft, padRight, padTop, padBottom, innerW, innerH,
-      xOf, yOf, xTicks, yTicks,
+      xOf, yOf, yTicks,
       malePath: buildPath('male'),
       femalePath: buildPath('female'),
     }
   }, [points])
 
-  // Find income threshold where each gender crosses a reference percentile
   const crossings = useMemo(() => {
     const result: Record<number, { male: number | null; female: number | null }> = {}
-    for (const pct of REFERENCE_PERCENTILES) {
+    for (const pct of referencePercentiles) {
       result[pct] = {
-        male: interpolateIncomeAt(points, pct, 'male'),
-        female: interpolateIncomeAt(points, pct, 'female'),
+        male: interpolateXAt(points, pct, 'male'),
+        female: interpolateXAt(points, pct, 'female'),
       }
     }
     return result
-  }, [points])
+  }, [points, referencePercentiles])
 
   return (
     <div className="w-full">
@@ -78,7 +85,6 @@ export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
         className="w-full h-auto"
         onMouseLeave={() => setHoverIdx(null)}
       >
-        {/* Y grid + labels */}
         {chart.yTicks.map((t) => {
           const y = chart.yOf(t)
           return (
@@ -106,8 +112,7 @@ export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
           )
         })}
 
-        {/* Reference percentile lines */}
-        {REFERENCE_PERCENTILES.map((pct) => {
+        {referencePercentiles.map((pct) => {
           const y = chart.yOf(pct)
           return (
             <line
@@ -128,8 +133,7 @@ export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
           上位%
         </text>
 
-        {/* X axis labels */}
-        {chart.xTicks.map((t) => (
+        {xTicks.map((t) => (
           <text
             key={`xt-${t}`}
             x={chart.xOf(t)}
@@ -138,7 +142,7 @@ export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
             fontSize={10}
             fill="var(--color-text-muted)"
           >
-            {t === 0 ? '0' : `${t}`}
+            {t}
           </text>
         ))}
         <text
@@ -148,10 +152,9 @@ export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
           fontSize={10}
           fill="var(--color-text-muted)"
         >
-          年収（万円）
+          {xAxisLabel}
         </text>
 
-        {/* Lines */}
         <motion.path
           d={chart.malePath}
           fill="none"
@@ -175,9 +178,8 @@ export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
           transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
         />
 
-        {/* Points + hover */}
         {points.map((p, i) => {
-          const cx = chart.xOf(p.income)
+          const cx = chart.xOf(p.x)
           const isHover = hoverIdx === i
           return (
             <g key={`pt-${i}`}>
@@ -195,11 +197,10 @@ export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
           )
         })}
 
-        {/* Tooltip */}
         {hoverIdx != null && (() => {
           const p = points[hoverIdx]
-          const cx = chart.xOf(p.income)
-          const boxW = 120
+          const cx = chart.xOf(p.x)
+          const boxW = 130
           const boxH = 58
           const flip = cx + boxW + 8 > chart.width - chart.padRight
           const bx = flip ? cx - boxW - 8 : cx + 8
@@ -209,7 +210,7 @@ export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
               <line x1={cx} x2={cx} y1={chart.padTop} y2={chart.height - chart.padBottom} stroke="var(--color-text-muted)" strokeDasharray="2 3" strokeWidth={0.5} />
               <rect x={bx} y={by} width={boxW} height={boxH} rx={6} fill="var(--color-bg-primary)" stroke="var(--color-border)" />
               <text x={bx + 8} y={by + 14} fontSize={10} fill="var(--color-text-secondary)" fontWeight={600}>
-                {p.income === 0 ? '年収問わず' : `${p.income}万円以上`}
+                {formatThreshold(p.x)}
               </text>
               <circle cx={bx + 12} cy={by + 30} r={3} fill={MALE_COLOR} />
               <text x={bx + 20} y={by + 30} fontSize={10} fill="var(--color-text-primary)" dominantBaseline="central">
@@ -224,17 +225,16 @@ export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
         })()}
       </svg>
 
-      {/* Reference percentile readout */}
       <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
-        {REFERENCE_PERCENTILES.map((pct) => (
+        {referencePercentiles.map((pct) => (
           <div key={pct} className="rounded-md border border-border bg-bg-surface-hover/20 px-2.5 py-1.5">
             <div className="text-text-muted mb-0.5">上位 {pct}%</div>
             <div className="flex flex-col gap-0.5">
               <div className="tabular-nums" style={{ color: MALE_COLOR }}>
-                男性: {formatCross(crossings[pct].male)}
+                男性: {formatCrossing(crossings[pct].male, formatThreshold)}
               </div>
               <div className="tabular-nums" style={{ color: FEMALE_COLOR }}>
-                女性: {formatCross(crossings[pct].female)}
+                女性: {formatCrossing(crossings[pct].female, formatThreshold)}
               </div>
             </div>
           </div>
@@ -244,14 +244,13 @@ export function IncomeCDFChart({ points }: IncomeCDFChartProps) {
   )
 }
 
-function interpolateIncomeAt(points: CDFPoint[], targetPct: number, series: 'male' | 'female'): number | null {
-  // points are monotonically decreasing in y (top%). Find segment where the target lies.
+function interpolateXAt(points: CDFPoint[], targetPct: number, series: 'male' | 'female'): number | null {
   for (let i = 0; i < points.length - 1; i++) {
     const y0 = points[i][series]
     const y1 = points[i + 1][series]
     if (y0 >= targetPct && y1 <= targetPct) {
-      const x0 = points[i].income
-      const x1 = points[i + 1].income
+      const x0 = points[i].x
+      const x1 = points[i + 1].x
       if (y0 === y1) return x0
       const t = (y0 - targetPct) / (y0 - y1)
       return x0 + (x1 - x0) * t
@@ -260,7 +259,7 @@ function interpolateIncomeAt(points: CDFPoint[], targetPct: number, series: 'mal
   return null
 }
 
-function formatCross(v: number | null): string {
+function formatCrossing(v: number | null, fmt: (x: number) => string): string {
   if (v == null) return '—'
-  return `${Math.round(v)}万円以上`
+  return fmt(v)
 }

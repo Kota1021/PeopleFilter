@@ -1,5 +1,6 @@
 import type { AgeGroup } from './types'
 import { AGE_GROUPS, ageGroupStart } from './types'
+import { normalCDF } from './normalDistribution'
 import populationData from '../data/population.json'
 import incomeEducationData from '../data/income-education.json'
 import heightWeightData from '../data/height-weight.json'
@@ -198,16 +199,16 @@ export function incomeDistributionByAge(ageRange: [number, number]): IncomeBandP
 }
 
 export interface CDFPoint {
-  income: number
+  x: number
   male: number
   female: number
 }
 
-const CDF_THRESHOLDS = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000]
+const INCOME_CDF_THRESHOLDS = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000]
 
 export function incomeCDFByAge(ageRange: [number, number]): CDFPoint[] {
   const bands = incomeDistributionByAge(ageRange)
-  return CDF_THRESHOLDS.map((t) => {
+  return INCOME_CDF_THRESHOLDS.map((t) => {
     let male = 0
     let female = 0
     for (const b of bands) {
@@ -216,8 +217,42 @@ export function incomeCDFByAge(ageRange: [number, number]): CDFPoint[] {
         female += b.female
       }
     }
-    return { income: t, male: male * 100, female: female * 100 }
+    return { x: t, male: male * 100, female: female * 100 }
   })
+}
+
+export const HEIGHT_AGE_RANGE = { min: 15, max: 89 }
+const HEIGHT_CDF_THRESHOLDS = [140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200]
+
+const ALL_ADULT_GROUPS: AgeGroup[] = [
+  '15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49',
+  '50-54', '55-59', '60-64', '65-69', '70-74', '75-79', '80+',
+]
+
+export function heightCDFByAge(ageRange: [number, number]): CDFPoint[] {
+  const groups = ALL_ADULT_GROUPS.filter((g) => groupInRange(g, ageRange))
+
+  const tailProbForGender = (gender: Gender, threshold: number): number => {
+    let weightedSum = 0
+    let totalPop = 0
+    for (const group of groups) {
+      const pop = get(populationData, 'total', gender, group) as number | undefined
+      const mean = get(heightWeightData, gender, group, 'height', 'mean') as number | undefined
+      const sd = get(heightWeightData, gender, group, 'height', 'sd') as number | undefined
+      if (!pop || mean == null || sd == null || sd <= 0) continue
+      const z = (threshold - mean) / sd
+      const tailProb = 1 - normalCDF(z)
+      weightedSum += pop * tailProb
+      totalPop += pop
+    }
+    return totalPop > 0 ? weightedSum / totalPop : 0
+  }
+
+  return HEIGHT_CDF_THRESHOLDS.map((t) => ({
+    x: t,
+    male: tailProbForGender('male', t) * 100,
+    female: tailProbForGender('female', t) * 100,
+  }))
 }
 
 export function smokingRateByAge(): AgePoint[] {
