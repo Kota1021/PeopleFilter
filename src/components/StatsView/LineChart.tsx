@@ -252,7 +252,7 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
           if (p.male != null) lines.push({ label: '男性', val: fmt(p.male), color: MALE_COLOR })
           if (p.female != null) lines.push({ label: '女性', val: fmt(p.female), color: FEMALE_COLOR })
           const boxW = 88
-          const boxH = 14 + lines.length * 14
+          const boxH = 24 + lines.length * 14
           const flip = cx + boxW + 8 > chart.width - chart.padRight
           const bx = flip ? cx - boxW - 8 : cx + 8
           const by = chart.padTop + 8
