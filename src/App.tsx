@@ -7,12 +7,13 @@ import { FunnelChart } from './components/FunnelChart/FunnelChart'
 import { ResultDisplay } from './components/ResultDisplay/ResultDisplay'
 import { ScoreDisplay } from './components/ScoreDisplay/ScoreDisplay'
 import { SelfInput } from './components/SelfAssessment/SelfInput'
+import { StatsView } from './components/StatsView/StatsView'
 import { useCalculation } from './hooks/useCalculation'
 import { useFilterStore } from './store/filterStore'
 import { useSelfStore } from './store/selfStore'
 import { calculateScore, calculateSelfScore } from './engine/scorer'
 
-type Tab = 'search' | 'self'
+type Tab = 'search' | 'self' | 'stats'
 
 function App() {
   const [tab, setTab] = useState<Tab>('search')
@@ -31,7 +32,7 @@ function App() {
 
         {/* Tab switcher */}
         <div className="px-4 mb-6">
-          <div className="flex gap-1 bg-bg-surface rounded-xl p-1 max-w-md mx-auto border border-border">
+          <div className="flex gap-1 bg-bg-surface rounded-xl p-1 max-w-xl mx-auto border border-border">
             <button
               onClick={() => setTab('search')}
               className={clsx(
@@ -54,11 +55,22 @@ function App() {
             >
               自分を測る
             </button>
+            <button
+              onClick={() => setTab('stats')}
+              className={clsx(
+                'flex-1 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+                tab === 'stats'
+                  ? 'bg-funnel-end/15 text-funnel-end shadow-sm'
+                  : 'text-text-muted hover:text-text-secondary',
+              )}
+            >
+              統計を見る
+            </button>
           </div>
         </div>
 
         <div className="px-4 pb-8">
-          {tab === 'search' ? (
+          {tab === 'search' && (
             /* ===== Search mode ===== */
             <div className="flex flex-col lg:flex-row gap-8">
               <div className="w-full lg:w-[380px] shrink-0">
@@ -84,7 +96,9 @@ function App() {
                 {partnerScore && <ScoreDisplay score={partnerScore} title="求める相手のレア度" />}
               </div>
             </div>
-          ) : (
+          )}
+
+          {tab === 'self' && (
             /* ===== Self-assessment mode ===== */
             <div className="flex flex-col lg:flex-row gap-8">
               <div className="w-full lg:w-[380px] shrink-0">
@@ -98,6 +112,11 @@ function App() {
                 <ScoreDisplay score={selfScore} title="あなたのレア度" />
               </div>
             </div>
+          )}
+
+          {tab === 'stats' && (
+            /* ===== Stats mode ===== */
+            <StatsView />
           )}
         </div>
 
