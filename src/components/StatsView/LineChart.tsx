@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import type { AgePoint } from '../../engine/statsByAge'
+import { useContainerWidth } from '../../hooks/useContainerWidth'
 
 interface LineChartProps {
   points: AgePoint[]
@@ -13,6 +14,11 @@ interface LineChartProps {
 
 const MALE_COLOR = '#06b6d4'
 const FEMALE_COLOR = '#f43f5e'
+
+// Target CSS pixel sizes — what the user actually sees on any device.
+const FS_TICK_PX = 12    // matches text-xs
+const FS_TOOLTIP_PX = 13
+const FS_AXIS_PX = 13
 
 function niceStep(roughStep: number): number {
   if (roughStep <= 0) return 1
@@ -36,14 +42,22 @@ function niceTicks(min: number, max: number, count = 5): number[] {
 
 export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick, highlightIndex }: LineChartProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+  const [wrapperRef, wrapperWidth] = useContainerWidth<HTMLDivElement>()
+
+  // 1 CSS pixel = `u` SVG user units. viewBox width / rendered width.
+  const u = 720 / wrapperWidth
 
   const chart = useMemo(() => {
     const width = 720
     const height = 320
-    const padLeft = 58
-    const padRight = 16
-    const padTop = 24
-    const padBottom = 52
+    const fsTick = FS_TICK_PX * u
+    const fsTooltip = FS_TOOLTIP_PX * u
+    const fsAxis = FS_AXIS_PX * u
+
+    const padLeft = fsTick * 3.2 + 14
+    const padRight = fsTick
+    const padTop = fsAxis + 14
+    const padBottom = fsTick + fsAxis + 20
 
     const innerW = width - padLeft - padRight
     const innerH = height - padTop - padBottom
@@ -77,15 +91,16 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
     return {
       width, height, padLeft, padRight, padTop, padBottom, innerW, innerH,
       xOf, yOf, xCenter, ticks, yMin, yMax,
+      fsTick, fsTooltip, fsAxis,
       malePath: buildPath('male'),
       femalePath: buildPath('female'),
     }
-  }, [points, yMinFloor])
+  }, [points, yMinFloor, u])
 
   const fmt = formatValue ?? ((v: number) => `${v.toFixed(1)}`)
 
   return (
-    <div className="w-full">
+    <div ref={wrapperRef} className="w-full">
       {/* Legend */}
       <div className="flex gap-4 text-sm text-text-secondary mb-2 justify-end pr-2">
         <div className="flex items-center gap-1.5">
@@ -114,15 +129,15 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
                 y1={y}
                 y2={y}
                 stroke="var(--color-border)"
-                strokeWidth={0.5}
+                strokeWidth={0.5 * u}
                 opacity={0.6}
               />
               <text
-                x={chart.padLeft - 6}
+                x={chart.padLeft - 6 * u}
                 y={y}
                 textAnchor="end"
                 dominantBaseline="central"
-                fontSize={14}
+                fontSize={chart.fsTick}
                 fill="var(--color-text-muted)"
               >
                 {fmt(t)}
@@ -133,9 +148,9 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
 
         {/* Y axis unit label */}
         <text
-          x={chart.padLeft - 48}
-          y={chart.padTop - 6}
-          fontSize={14}
+          x={4 * u}
+          y={chart.fsAxis}
+          fontSize={chart.fsAxis}
           fill="var(--color-text-muted)"
         >
           {yUnit}
@@ -148,9 +163,9 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
             <text
               key={`xlbl-${i}`}
               x={x}
-              y={chart.height - chart.padBottom + 18}
+              y={chart.height - chart.padBottom + chart.fsTick + 4 * u}
               textAnchor="middle"
-              fontSize={14}
+              fontSize={chart.fsTick}
               fill="var(--color-text-muted)"
             >
               {p.ageLabel}
@@ -159,9 +174,9 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
         })}
         <text
           x={(chart.padLeft + (chart.width - chart.padRight)) / 2}
-          y={chart.height - 6}
+          y={chart.height - 4 * u}
           textAnchor="middle"
-          fontSize={14}
+          fontSize={chart.fsAxis}
           fill="var(--color-text-muted)"
         >
           年齢
@@ -172,7 +187,7 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
           d={chart.malePath}
           fill="none"
           stroke={MALE_COLOR}
-          strokeWidth={2}
+          strokeWidth={2 * u}
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={{ pathLength: 0, opacity: 0 }}
@@ -183,7 +198,7 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
           d={chart.femalePath}
           fill="none"
           stroke={FEMALE_COLOR}
-          strokeWidth={2}
+          strokeWidth={2 * u}
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={{ pathLength: 0, opacity: 0 }}
@@ -195,45 +210,46 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
         {points.map((p, i) => {
           const cx = chart.xCenter(p)
           const isHover = hoverIdx === i
+          const r = (isHover ? 4 : 3) * u
           return (
             <g key={`pt-${i}`}>
               {p.male != null && (
                 <circle
                   cx={cx}
                   cy={chart.yOf(p.male)}
-                  r={isHover ? 4 : 3}
+                  r={r}
                   fill={MALE_COLOR}
                   stroke="var(--color-bg-surface)"
-                  strokeWidth={1.5}
+                  strokeWidth={1.5 * u}
                 />
               )}
               {p.female != null && (
                 <circle
                   cx={cx}
                   cy={chart.yOf(p.female)}
-                  r={isHover ? 4 : 3}
+                  r={r}
                   fill={FEMALE_COLOR}
                   stroke="var(--color-bg-surface)"
-                  strokeWidth={1.5}
+                  strokeWidth={1.5 * u}
                 />
               )}
               {/* Highlight band */}
               {highlightIndex === i && (
                 <rect
-                  x={cx - 14}
+                  x={cx - 16 * u}
                   y={chart.padTop}
-                  width={28}
+                  width={32 * u}
                   height={chart.innerH}
                   fill="var(--color-funnel-end)"
                   opacity={0.08}
-                  rx={4}
+                  rx={4 * u}
                 />
               )}
               {/* Wide invisible hover target */}
               <rect
-                x={cx - 16}
+                x={cx - 20 * u}
                 y={chart.padTop}
-                width={32}
+                width={40 * u}
                 height={chart.innerH}
                 fill="transparent"
                 style={onPointClick ? { cursor: 'pointer' } : undefined}
@@ -251,26 +267,30 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
           const lines: Array<{ label: string; val: string; color: string }> = []
           if (p.male != null) lines.push({ label: '男性', val: fmt(p.male), color: MALE_COLOR })
           if (p.female != null) lines.push({ label: '女性', val: fmt(p.female), color: FEMALE_COLOR })
-          const boxW = 118
-          const boxH = 32 + lines.length * 18
-          const flip = cx + boxW + 8 > chart.width - chart.padRight
-          const bx = flip ? cx - boxW - 8 : cx + 8
-          const by = chart.padTop + 8
+          const rowH = chart.fsTooltip + 5 * u
+          const boxW = 90 * u
+          const boxH = chart.fsTooltip * 1.4 + 8 * u + lines.length * rowH + 6 * u
+          const flip = cx + boxW + 8 * u > chart.width - chart.padRight
+          const bx = flip ? cx - boxW - 8 * u : cx + 8 * u
+          const by = chart.padTop + 6 * u
           return (
             <g pointerEvents="none">
-              <line x1={cx} x2={cx} y1={chart.padTop} y2={chart.height - chart.padBottom} stroke="var(--color-text-muted)" strokeDasharray="2 3" strokeWidth={0.5} />
-              <rect x={bx} y={by} width={boxW} height={boxH} rx={6} fill="var(--color-bg-primary)" stroke="var(--color-border)" />
-              <text x={bx + 10} y={by + 18} fontSize={13} fill="var(--color-text-secondary)" fontWeight={600}>
+              <line x1={cx} x2={cx} y1={chart.padTop} y2={chart.height - chart.padBottom} stroke="var(--color-text-muted)" strokeDasharray={`${2 * u} ${3 * u}`} strokeWidth={0.5 * u} />
+              <rect x={bx} y={by} width={boxW} height={boxH} rx={6 * u} fill="var(--color-bg-primary)" stroke="var(--color-border)" strokeWidth={1 * u} />
+              <text x={bx + 8 * u} y={by + chart.fsTooltip + 4 * u} fontSize={chart.fsTooltip} fill="var(--color-text-secondary)" fontWeight={600}>
                 {p.ageLabel}歳
               </text>
-              {lines.map((ln, i) => (
-                <g key={ln.label}>
-                  <circle cx={bx + 14} cy={by + 38 + i * 18} r={3.5} fill={ln.color} />
-                  <text x={bx + 22} y={by + 38 + i * 18} fontSize={13} fill="var(--color-text-primary)" dominantBaseline="central">
-                    {ln.label} {ln.val}
-                  </text>
-                </g>
-              ))}
+              {lines.map((ln, i) => {
+                const cy = by + chart.fsTooltip * 1.4 + 8 * u + i * rowH + rowH / 2
+                return (
+                  <g key={ln.label}>
+                    <circle cx={bx + 12 * u} cy={cy} r={3 * u} fill={ln.color} />
+                    <text x={bx + 20 * u} y={cy} fontSize={chart.fsTooltip} fill="var(--color-text-primary)" dominantBaseline="central">
+                      {ln.label} {ln.val}
+                    </text>
+                  </g>
+                )
+              })}
             </g>
           )
         })()}

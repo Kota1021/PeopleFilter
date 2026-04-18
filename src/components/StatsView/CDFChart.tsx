@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import type { CDFPoint } from '../../engine/statsByAge'
+import { useContainerWidth } from '../../hooks/useContainerWidth'
 
 interface CDFChartProps {
   points: CDFPoint[]
@@ -13,6 +14,10 @@ interface CDFChartProps {
 const MALE_COLOR = '#06b6d4'
 const FEMALE_COLOR = '#f43f5e'
 
+const FS_TICK_PX = 12
+const FS_TOOLTIP_PX = 13
+const FS_AXIS_PX = 13
+
 export function CDFChart({
   points,
   xTicks,
@@ -21,14 +26,21 @@ export function CDFChart({
   referencePercentiles = [10, 25, 50],
 }: CDFChartProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
+  const [wrapperRef, wrapperWidth] = useContainerWidth<HTMLDivElement>()
+
+  const u = 720 / wrapperWidth
 
   const chart = useMemo(() => {
     const width = 720
     const height = 320
-    const padLeft = 58
-    const padRight = 16
-    const padTop = 24
-    const padBottom = 52
+    const fsTick = FS_TICK_PX * u
+    const fsTooltip = FS_TOOLTIP_PX * u
+    const fsAxis = FS_AXIS_PX * u
+
+    const padLeft = fsTick * 3.2 + 14
+    const padRight = fsTick
+    const padTop = fsAxis + 14
+    const padBottom = fsTick + fsAxis + 20
 
     const innerW = width - padLeft - padRight
     const innerH = height - padTop - padBottom
@@ -51,10 +63,11 @@ export function CDFChart({
     return {
       width, height, padLeft, padRight, padTop, padBottom, innerW, innerH,
       xOf, yOf, yTicks,
+      fsTick, fsTooltip, fsAxis,
       malePath: buildPath('male'),
       femalePath: buildPath('female'),
     }
-  }, [points])
+  }, [points, u])
 
   const crossings = useMemo(() => {
     const result: Record<number, { male: number | null; female: number | null }> = {}
@@ -68,7 +81,7 @@ export function CDFChart({
   }, [points, referencePercentiles])
 
   return (
-    <div className="w-full">
+    <div ref={wrapperRef} className="w-full">
       <div className="flex gap-4 text-sm text-text-secondary mb-2 justify-end pr-2">
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-3.5 h-0.5 rounded-full" style={{ backgroundColor: MALE_COLOR }} />
@@ -95,15 +108,15 @@ export function CDFChart({
                 y1={y}
                 y2={y}
                 stroke="var(--color-border)"
-                strokeWidth={0.5}
+                strokeWidth={0.5 * u}
                 opacity={0.6}
               />
               <text
-                x={chart.padLeft - 6}
+                x={chart.padLeft - 6 * u}
                 y={y}
                 textAnchor="end"
                 dominantBaseline="central"
-                fontSize={14}
+                fontSize={chart.fsTick}
                 fill="var(--color-text-muted)"
               >
                 {t}%
@@ -122,14 +135,14 @@ export function CDFChart({
               y1={y}
               y2={y}
               stroke="var(--color-funnel-end)"
-              strokeWidth={0.5}
-              strokeDasharray="2 4"
+              strokeWidth={0.5 * u}
+              strokeDasharray={`${2 * u} ${4 * u}`}
               opacity={0.35}
             />
           )
         })}
 
-        <text x={chart.padLeft - 48} y={chart.padTop - 6} fontSize={14} fill="var(--color-text-muted)">
+        <text x={4 * u} y={chart.fsAxis} fontSize={chart.fsAxis} fill="var(--color-text-muted)">
           上位%
         </text>
 
@@ -137,9 +150,9 @@ export function CDFChart({
           <text
             key={`xt-${t}`}
             x={chart.xOf(t)}
-            y={chart.height - chart.padBottom + 18}
+            y={chart.height - chart.padBottom + chart.fsTick + 4 * u}
             textAnchor="middle"
-            fontSize={14}
+            fontSize={chart.fsTick}
             fill="var(--color-text-muted)"
           >
             {t}
@@ -147,9 +160,9 @@ export function CDFChart({
         ))}
         <text
           x={(chart.padLeft + (chart.width - chart.padRight)) / 2}
-          y={chart.height - 6}
+          y={chart.height - 4 * u}
           textAnchor="middle"
-          fontSize={14}
+          fontSize={chart.fsAxis}
           fill="var(--color-text-muted)"
         >
           {xAxisLabel}
@@ -159,7 +172,7 @@ export function CDFChart({
           d={chart.malePath}
           fill="none"
           stroke={MALE_COLOR}
-          strokeWidth={2}
+          strokeWidth={2 * u}
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={{ pathLength: 0, opacity: 0 }}
@@ -170,7 +183,7 @@ export function CDFChart({
           d={chart.femalePath}
           fill="none"
           stroke={FEMALE_COLOR}
-          strokeWidth={2}
+          strokeWidth={2 * u}
           strokeLinecap="round"
           strokeLinejoin="round"
           initial={{ pathLength: 0, opacity: 0 }}
@@ -181,14 +194,15 @@ export function CDFChart({
         {points.map((p, i) => {
           const cx = chart.xOf(p.x)
           const isHover = hoverIdx === i
+          const r = (isHover ? 4 : 3) * u
           return (
             <g key={`pt-${i}`}>
-              <circle cx={cx} cy={chart.yOf(p.male)} r={isHover ? 4 : 3} fill={MALE_COLOR} stroke="var(--color-bg-surface)" strokeWidth={1.5} />
-              <circle cx={cx} cy={chart.yOf(p.female)} r={isHover ? 4 : 3} fill={FEMALE_COLOR} stroke="var(--color-bg-surface)" strokeWidth={1.5} />
+              <circle cx={cx} cy={chart.yOf(p.male)} r={r} fill={MALE_COLOR} stroke="var(--color-bg-surface)" strokeWidth={1.5 * u} />
+              <circle cx={cx} cy={chart.yOf(p.female)} r={r} fill={FEMALE_COLOR} stroke="var(--color-bg-surface)" strokeWidth={1.5 * u} />
               <rect
-                x={cx - 18}
+                x={cx - 22 * u}
                 y={chart.padTop}
-                width={36}
+                width={44 * u}
                 height={chart.innerH}
                 fill="transparent"
                 onMouseEnter={() => setHoverIdx(i)}
@@ -200,24 +214,25 @@ export function CDFChart({
         {hoverIdx != null && (() => {
           const p = points[hoverIdx]
           const cx = chart.xOf(p.x)
-          const boxW = 170
-          const boxH = 76
-          const flip = cx + boxW + 8 > chart.width - chart.padRight
-          const bx = flip ? cx - boxW - 8 : cx + 8
-          const by = chart.padTop + 8
+          const rowH = chart.fsTooltip + 5 * u
+          const boxW = 140 * u
+          const boxH = chart.fsTooltip * 1.4 + 8 * u + 2 * rowH + 6 * u
+          const flip = cx + boxW + 8 * u > chart.width - chart.padRight
+          const bx = flip ? cx - boxW - 8 * u : cx + 8 * u
+          const by = chart.padTop + 6 * u
           return (
             <g pointerEvents="none">
-              <line x1={cx} x2={cx} y1={chart.padTop} y2={chart.height - chart.padBottom} stroke="var(--color-text-muted)" strokeDasharray="2 3" strokeWidth={0.5} />
-              <rect x={bx} y={by} width={boxW} height={boxH} rx={6} fill="var(--color-bg-primary)" stroke="var(--color-border)" />
-              <text x={bx + 10} y={by + 18} fontSize={13} fill="var(--color-text-secondary)" fontWeight={600}>
+              <line x1={cx} x2={cx} y1={chart.padTop} y2={chart.height - chart.padBottom} stroke="var(--color-text-muted)" strokeDasharray={`${2 * u} ${3 * u}`} strokeWidth={0.5 * u} />
+              <rect x={bx} y={by} width={boxW} height={boxH} rx={6 * u} fill="var(--color-bg-primary)" stroke="var(--color-border)" strokeWidth={1 * u} />
+              <text x={bx + 8 * u} y={by + chart.fsTooltip + 4 * u} fontSize={chart.fsTooltip} fill="var(--color-text-secondary)" fontWeight={600}>
                 {formatThreshold(p.x)}
               </text>
-              <circle cx={bx + 14} cy={by + 40} r={3.5} fill={MALE_COLOR} />
-              <text x={bx + 22} y={by + 40} fontSize={13} fill="var(--color-text-primary)" dominantBaseline="central">
+              <circle cx={bx + 12 * u} cy={by + chart.fsTooltip * 1.4 + 8 * u + rowH / 2} r={3 * u} fill={MALE_COLOR} />
+              <text x={bx + 20 * u} y={by + chart.fsTooltip * 1.4 + 8 * u + rowH / 2} fontSize={chart.fsTooltip} fill="var(--color-text-primary)" dominantBaseline="central">
                 男性 上位 {p.male.toFixed(1)}%
               </text>
-              <circle cx={bx + 14} cy={by + 60} r={3.5} fill={FEMALE_COLOR} />
-              <text x={bx + 22} y={by + 60} fontSize={13} fill="var(--color-text-primary)" dominantBaseline="central">
+              <circle cx={bx + 12 * u} cy={by + chart.fsTooltip * 1.4 + 8 * u + rowH * 1.5} r={3 * u} fill={FEMALE_COLOR} />
+              <text x={bx + 20 * u} y={by + chart.fsTooltip * 1.4 + 8 * u + rowH * 1.5} fontSize={chart.fsTooltip} fill="var(--color-text-primary)" dominantBaseline="central">
                 女性 上位 {p.female.toFixed(1)}%
               </text>
             </g>
