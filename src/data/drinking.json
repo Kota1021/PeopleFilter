@@ -1,0 +1,30 @@
+{
+  "source": "厚生労働省 国民健康・栄養調査 2023年（令和5年）の飲酒習慣者率を基に、非飲酒率・時々飲酒率を研究知見から補完した推定値",
+  "note": "none=飲まない（禁酒・ほぼ飲まない） / occasional=時々飲む（月〜週2回程度） / habitual=飲酒習慣あり（週3日以上かつ1日1合以上）。10歳階級×性別。20歳以上が対象",
+  "ageGroups": {
+    "20-29": {
+      "male":   { "none": 0.35, "occasional": 0.51, "habitual": 0.14 },
+      "female": { "none": 0.48, "occasional": 0.47, "habitual": 0.05 }
+    },
+    "30-39": {
+      "male":   { "none": 0.28, "occasional": 0.46, "habitual": 0.26 },
+      "female": { "none": 0.42, "occasional": 0.49, "habitual": 0.09 }
+    },
+    "40-49": {
+      "male":   { "none": 0.22, "occasional": 0.44, "habitual": 0.34 },
+      "female": { "none": 0.36, "occasional": 0.48, "habitual": 0.16 }
+    },
+    "50-59": {
+      "male":   { "none": 0.20, "occasional": 0.41, "habitual": 0.39 },
+      "female": { "none": 0.32, "occasional": 0.52, "habitual": 0.16 }
+    },
+    "60-69": {
+      "male":   { "none": 0.24, "occasional": 0.41, "habitual": 0.35 },
+      "female": { "none": 0.37, "occasional": 0.48, "habitual": 0.15 }
+    },
+    "70+": {
+      "male":   { "none": 0.34, "occasional": 0.40, "habitual": 0.26 },
+      "female": { "none": 0.50, "occasional": 0.41, "habitual": 0.09 }
+    }
+  }
+}

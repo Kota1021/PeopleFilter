@@ -70,3 +70,41 @@ export const OCCUPATION_OPTIONS = [
 export const HEIGHT_RANGE = { min: 140, max: 200 } as const
 export const WEIGHT_RANGE = { min: 30, max: 120 } as const
 export const AGE_RANGE = { min: 0, max: 80 } as const
+
+export const CHILDREN_DESIRE_OPTIONS = [
+  { value: 'any' as const, label: '気にしない' },
+  { value: 'want' as const, label: 'ほしい人' },
+  { value: 'no' as const, label: 'ほしくない人' },
+] as const
+
+export const SMOKING_OPTIONS = [
+  { value: 'any' as const, label: '気にしない' },
+  { value: 'nonsmoker' as const, label: '非喫煙者' },
+] as const
+
+export const DRINKING_OPTIONS = [
+  { value: 'any' as const, label: '気にしない' },
+  { value: 'light' as const, label: '飲まない〜たまに' },
+  { value: 'none' as const, label: '飲まない人のみ' },
+] as const
+
+export const COMPATIBILITY_AXES = [
+  { key: 'looks' as const, label: '顔立ち' },
+  { key: 'money' as const, label: '金銭感覚' },
+  { key: 'personality' as const, label: '性格の相性' },
+  { key: 'food' as const, label: '食の好み' },
+  { key: 'values' as const, label: '価値観' },
+  { key: 'lifestyle' as const, label: '朝型/夜型' },
+] as const
+
+/** 0=誰でもOK (1.0), 5=完璧主義 (0.05) */
+export const COMPATIBILITY_COEF_MAP = [1.0, 0.7, 0.5, 0.3, 0.15, 0.05] as const
+
+export const COMPATIBILITY_LEVEL_LABELS = [
+  '誰でも',
+  'ゆるい',
+  'ふつう',
+  'こだわる',
+  '強いこだわり',
+  '完璧主義',
+] as const

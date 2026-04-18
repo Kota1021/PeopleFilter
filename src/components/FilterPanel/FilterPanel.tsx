@@ -2,6 +2,8 @@ import clsx from 'clsx'
 import { useFilterStore } from '../../store/filterStore'
 import { RangeSlider } from '../shared/RangeSlider'
 import { ChipSelector } from '../shared/ChipSelector'
+import { SingleChipSelector } from '../shared/SingleChipSelector'
+import { CompatibilitySlider } from '../shared/CompatibilitySlider'
 import { SteppedRangeSlider } from '../shared/SteppedRangeSlider'
 import { PrefectureSelector } from '../shared/PrefectureSelector'
 import {
@@ -13,6 +15,10 @@ import {
   AGE_RANGE,
   HEIGHT_RANGE,
   WEIGHT_RANGE,
+  CHILDREN_DESIRE_OPTIONS,
+  SMOKING_OPTIONS,
+  DRINKING_OPTIONS,
+  COMPATIBILITY_AXES,
 } from '../../constants/filterOptions'
 
 export function FilterPanel() {
@@ -136,6 +142,47 @@ export function FilterPanel() {
         selected={store.prefectures}
         onToggle={store.togglePrefecture}
       />
+
+      {/* ライフスタイル */}
+      <div className="pt-4 border-t border-border space-y-5">
+        <h3 className="text-sm font-semibold text-text-primary">ライフスタイル</h3>
+        <SingleChipSelector
+          label="子ども希望"
+          options={CHILDREN_DESIRE_OPTIONS}
+          selected={store.childrenDesire}
+          onSelect={store.setChildrenDesire}
+        />
+        <SingleChipSelector
+          label="喫煙"
+          options={SMOKING_OPTIONS}
+          selected={store.smokingPref}
+          onSelect={store.setSmokingPref}
+        />
+        <SingleChipSelector
+          label="飲酒"
+          options={DRINKING_OPTIONS}
+          selected={store.drinkingPref}
+          onSelect={store.setDrinkingPref}
+        />
+      </div>
+
+      {/* 相性フィルタ (主観ウェイト) */}
+      <div className="pt-4 border-t border-border space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-text-primary">相性フィルタ</h3>
+          <p className="text-xs text-text-muted">
+            統計ではなく主観推定。こだわり度に応じて最終人数に係数がかかります
+          </p>
+        </div>
+        {COMPATIBILITY_AXES.map((axis) => (
+          <CompatibilitySlider
+            key={axis.key}
+            label={axis.label}
+            value={store.compatibility[axis.key]}
+            onChange={(v) => store.setCompatibility(axis.key, v)}
+          />
+        ))}
+      </div>
 
       {/* Reset button */}
       <button

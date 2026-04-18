@@ -1,13 +1,16 @@
-import type { FilterState, Gender, MaritalStatus } from '../store/types'
+import type { ChildrenDesire, Compatibility, DrinkingPref, FilterState, Gender, MaritalStatus, SmokingPref } from '../store/types'
 import type { FunnelStage, AgeGroup } from './types'
 import { AGE_GROUPS, ageGroupStart, ageGroupEnd } from './types'
 import { normalRangeProbability } from './normalDistribution'
-import { incomeRangeToCategories } from '../constants/filterOptions'
+import { COMPATIBILITY_AXES, COMPATIBILITY_COEF_MAP, incomeRangeToCategories } from '../constants/filterOptions'
 import populationData from '../data/population.json'
 import incomeEducationData from '../data/income-education.json'
 import heightWeightData from '../data/height-weight.json'
 import occupationData from '../data/occupation.json'
 import prefectureData from '../data/prefecture.json'
+import childrenDesireData from '../data/children-desire.json'
+import smokingData from '../data/smoking.json'
+import drinkingData from '../data/drinking.json'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function get(obj: any, ...keys: string[]): any {
@@ -134,6 +137,50 @@ function getOccupationProbability(gender: Gender, group: AgeGroup, occupations: 
   return prob
 }
 
+/** Map 5-year AgeGroup to the 10-year bucket used by smoking/drinking/children data. */
+function ageGroupToDecade(group: AgeGroup): string {
+  const start = ageGroupStart(group)
+  if (start < 20) return '20-29'
+  if (start >= 70) return '70+'
+  const decadeStart = Math.floor(start / 10) * 10
+  return `${decadeStart}-${decadeStart + 9}`
+}
+
+function getChildrenDesireProbability(gender: Gender, group: AgeGroup, pref: ChildrenDesire): number {
+  if (pref === 'any') return 1.0
+  const decade = ageGroupToDecade(group)
+  const dist = get(childrenDesireData, 'ageGroups', decade, gender)
+  if (!dist) return 1.0
+  return (dist[pref] as number) ?? 1.0
+}
+
+function getSmokingProbability(gender: Gender, group: AgeGroup, pref: SmokingPref): number {
+  if (pref === 'any') return 1.0
+  const decade = ageGroupToDecade(group)
+  const smokerPct: number | undefined = get(smokingData, 'ageGroups', decade, gender)
+  if (smokerPct == null) return 1.0
+  return 1 - smokerPct / 100
+}
+
+function getDrinkingProbability(gender: Gender, group: AgeGroup, pref: DrinkingPref): number {
+  if (pref === 'any') return 1.0
+  const decade = ageGroupToDecade(group)
+  const dist = get(drinkingData, 'ageGroups', decade, gender)
+  if (!dist) return 1.0
+  if (pref === 'none') return (dist.none as number) ?? 1.0
+  return ((dist.none as number) ?? 0) + ((dist.occasional as number) ?? 0)
+}
+
+export function compatibilityCoefficient(c: Compatibility): number {
+  let coef = 1
+  for (const axis of COMPATIBILITY_AXES) {
+    const level = c[axis.key] ?? 0
+    const clamped = Math.max(0, Math.min(5, Math.round(level)))
+    coef *= COMPATIBILITY_COEF_MAP[clamped]
+  }
+  return coef
+}
+
 function getPrefectureRatio(prefectures: string[]): number {
   if (prefectures.length === 0) return 1.0
   let ratio = 0
@@ -204,7 +251,7 @@ function filteredPop(
 }
 
 export function calculateFunnel(filters: FilterState): FunnelStage[] {
-  const { genders, maritalStatuses, ageRange, incomeRange, educationLevels, heightRange, weightRange, occupations, prefectures } = filters
+  const { genders, maritalStatuses, ageRange, incomeRange, educationLevels, heightRange, weightRange, occupations, prefectures, childrenDesire, smokingPref, drinkingPref, compatibility } = filters
 
   const incomeCategories = incomeRangeToCategories(incomeRange[0], incomeRange[1])
   const isIncomeFiltered = incomeRange[0] > 0 || incomeRange[1] < 2000
@@ -337,6 +384,50 @@ export function calculateFunnel(filters: FilterState): FunnelStage[] {
     const empMultiplier = (isIncomeFiltered || educationLevels.length > 0) ? 1 : avgEmpRate
     currentCount = Math.round(currentCount * avgProb * empMultiplier)
     stages.push({ id: 'occupation', label: '職業', count: currentCount, percentage: currentCount / grandTotal })
+  }
+
+  // Stage 9: 子ども希望
+  if (childrenDesire !== 'any') {
+    const weighted = sumAcrossGendersAndGroups(genders, overlappingGroups, maritalStatuses,
+      (g, grp) => getChildrenDesireProbability(g, grp, childrenDesire))
+    const base = afterAgePop
+    const avgProb = base > 0 ? weighted / base : 1
+    currentCount = Math.round(currentCount * avgProb)
+    const label = childrenDesire === 'want' ? '子ども希望: ほしい' : '子ども希望: ほしくない'
+    stages.push({ id: 'children-desire', label, count: currentCount, percentage: currentCount / grandTotal })
+  }
+
+  // Stage 10: 喫煙
+  if (smokingPref !== 'any') {
+    const weighted = sumAcrossGendersAndGroups(genders, overlappingGroups, maritalStatuses,
+      (g, grp) => getSmokingProbability(g, grp, smokingPref))
+    const base = afterAgePop
+    const avgProb = base > 0 ? weighted / base : 1
+    currentCount = Math.round(currentCount * avgProb)
+    stages.push({ id: 'smoking', label: '非喫煙者', count: currentCount, percentage: currentCount / grandTotal })
+  }
+
+  // Stage 11: 飲酒
+  if (drinkingPref !== 'any') {
+    const weighted = sumAcrossGendersAndGroups(genders, overlappingGroups, maritalStatuses,
+      (g, grp) => getDrinkingProbability(g, grp, drinkingPref))
+    const base = afterAgePop
+    const avgProb = base > 0 ? weighted / base : 1
+    currentCount = Math.round(currentCount * avgProb)
+    const label = drinkingPref === 'none' ? '飲酒: 飲まない' : '飲酒: 飲まない〜たまに'
+    stages.push({ id: 'drinking', label, count: currentCount, percentage: currentCount / grandTotal })
+  }
+
+  // Stage 12: 相性フィルタ (coefficient product — subjective, not statistical)
+  const compatCoef = compatibilityCoefficient(compatibility)
+  if (compatCoef < 1) {
+    currentCount = Math.round(currentCount * compatCoef)
+    stages.push({
+      id: 'compatibility',
+      label: '相性フィルタ（主観）',
+      count: currentCount,
+      percentage: currentCount / grandTotal,
+    })
   }
 
   return stages

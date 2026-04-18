@@ -1,5 +1,12 @@
 export type Gender = 'male' | 'female'
 export type MaritalStatus = 'unmarried' | 'married' | 'divorced' | 'widowed'
+export type ChildrenDesire = 'any' | 'want' | 'no'
+export type SmokingPref = 'any' | 'nonsmoker'
+export type DrinkingPref = 'any' | 'none' | 'light'
+
+export type CompatibilityAxis = 'looks' | 'money' | 'personality' | 'food' | 'values' | 'lifestyle'
+
+export type Compatibility = Record<CompatibilityAxis, number>
 
 export interface FilterState {
   genders: Gender[]
@@ -11,6 +18,10 @@ export interface FilterState {
   weightRange: [number, number]
   occupations: string[]
   prefectures: string[]
+  childrenDesire: ChildrenDesire
+  smokingPref: SmokingPref
+  drinkingPref: DrinkingPref
+  compatibility: Compatibility
 }
 
 export interface FilterActions {
@@ -23,6 +34,10 @@ export interface FilterActions {
   setWeightRange: (r: [number, number]) => void
   toggleOccupation: (occ: string) => void
   togglePrefecture: (code: string) => void
+  setChildrenDesire: (v: ChildrenDesire) => void
+  setSmokingPref: (v: SmokingPref) => void
+  setDrinkingPref: (v: DrinkingPref) => void
+  setCompatibility: (axis: CompatibilityAxis, value: number) => void
   resetAll: () => void
 }
 

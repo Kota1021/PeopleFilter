@@ -1,4 +1,4 @@
-import type { FilterState, Gender } from '../store/types'
+import type { ChildrenDesire, DrinkingPref, FilterState, Gender, SmokingPref } from '../store/types'
 import type { SelfState } from '../store/selfStore'
 import type { AgeGroup } from './types'
 import { AGE_GROUPS, ageGroupStart, ageGroupEnd } from './types'
@@ -6,6 +6,9 @@ import { normalCDF } from './normalDistribution'
 import populationData from '../data/population.json'
 import incomeEducationData from '../data/income-education.json'
 import heightWeightData from '../data/height-weight.json'
+import childrenDesireData from '../data/children-desire.json'
+import smokingData from '../data/smoking.json'
+import drinkingData from '../data/drinking.json'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function get(obj: any, ...keys: string[]): any {
@@ -39,6 +42,69 @@ function percentileToTier(p: number): { tier: string; label: string } {
   if (p >= 40) return { tier: 'C', label: 'ふつう' }
   if (p >= 20) return { tier: 'D', label: 'よくいる' }
   return { tier: 'E', label: 'ありふれた' }
+}
+
+function ageGroupToDecade(group: AgeGroup): string {
+  const start = ageGroupStart(group)
+  if (start < 20) return '20-29'
+  if (start >= 70) return '70+'
+  const decadeStart = Math.floor(start / 10) * 10
+  return `${decadeStart}-${decadeStart + 9}`
+}
+
+/** Population-weighted match fraction across selected genders and age range. */
+function weightedMatchFraction(
+  genders: Gender[],
+  ageRange: [number, number],
+  matchFn: (gender: Gender, group: AgeGroup) => number,
+): number {
+  let totalPop = 0
+  let matchPop = 0
+  for (const gender of genders) {
+    for (const group of AGE_GROUPS) {
+      const start = ageGroupStart(group)
+      const end = ageGroupEnd(group)
+      if (end < ageRange[0] || start > ageRange[1]) continue
+      const pop: number = get(populationData, 'total', gender, group) ?? 0
+      totalPop += pop
+      matchPop += pop * matchFn(gender, group)
+    }
+  }
+  return totalPop > 0 ? matchPop / totalPop : 1
+}
+
+/** Convert match fraction → rarity percentile. Rarer match = higher score. */
+function matchFractionToPercentile(frac: number): number {
+  return Math.max(0, Math.min(99.9, (1 - frac) * 100))
+}
+
+function scoreChildrenDesire(pref: ChildrenDesire, genders: Gender[], ageRange: [number, number]): number {
+  if (pref === 'any') return -1
+  const frac = weightedMatchFraction(genders, ageRange, (g, grp) => {
+    const dist = get(childrenDesireData, 'ageGroups', ageGroupToDecade(grp), g)
+    return dist ? (dist[pref] as number) ?? 0 : 0
+  })
+  return matchFractionToPercentile(frac)
+}
+
+function scoreSmoking(pref: SmokingPref, genders: Gender[], ageRange: [number, number]): number {
+  if (pref === 'any') return -1
+  const frac = weightedMatchFraction(genders, ageRange, (g, grp) => {
+    const smokerPct: number = get(smokingData, 'ageGroups', ageGroupToDecade(grp), g) ?? 0
+    return 1 - smokerPct / 100
+  })
+  return matchFractionToPercentile(frac)
+}
+
+function scoreDrinking(pref: DrinkingPref, genders: Gender[], ageRange: [number, number]): number {
+  if (pref === 'any') return -1
+  const frac = weightedMatchFraction(genders, ageRange, (g, grp) => {
+    const dist = get(drinkingData, 'ageGroups', ageGroupToDecade(grp), g)
+    if (!dist) return 0
+    if (pref === 'none') return (dist.none as number) ?? 0
+    return ((dist.none as number) ?? 0) + ((dist.occasional as number) ?? 0)
+  })
+  return matchFractionToPercentile(frac)
 }
 
 /**
@@ -168,7 +234,7 @@ function scoreBMI(weight: number, height: number): number {
  *  - BMI (normal=better): worst combo from bounds (shortest + heaviest)
  */
 export function calculateScore(filters: FilterState): ScoreResult | null {
-  const { genders, ageRange, incomeRange, educationLevels, heightRange, weightRange } = filters
+  const { genders, ageRange, incomeRange, educationLevels, heightRange, weightRange, childrenDesire, smokingPref, drinkingPref } = filters
   const criteria: ScoreCriterion[] = []
 
   // Age: younger = better → upper bound = minimum acceptable
@@ -247,6 +313,42 @@ export function calculateScore(filters: FilterState): ScoreResult | null {
       value: `${bmi.toFixed(1)}`,
       percentile: bmiPercentile,
       tier: percentileToTier(bmiPercentile).tier,
+    })
+  }
+
+  // 子ども希望
+  if (childrenDesire !== 'any') {
+    const p = scoreChildrenDesire(childrenDesire, genders, ageRange)
+    criteria.push({
+      id: 'children-desire',
+      label: '子ども希望',
+      value: childrenDesire === 'want' ? 'ほしい' : 'ほしくない',
+      percentile: p,
+      tier: percentileToTier(p).tier,
+    })
+  }
+
+  // 喫煙
+  if (smokingPref !== 'any') {
+    const p = scoreSmoking(smokingPref, genders, ageRange)
+    criteria.push({
+      id: 'smoking',
+      label: '喫煙',
+      value: '非喫煙者',
+      percentile: p,
+      tier: percentileToTier(p).tier,
+    })
+  }
+
+  // 飲酒
+  if (drinkingPref !== 'any') {
+    const p = scoreDrinking(drinkingPref, genders, ageRange)
+    criteria.push({
+      id: 'drinking',
+      label: '飲酒',
+      value: drinkingPref === 'none' ? '飲まない' : '飲まない〜たまに',
+      percentile: p,
+      tier: percentileToTier(p).tier,
     })
   }
 

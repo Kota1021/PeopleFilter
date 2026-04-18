@@ -12,6 +12,10 @@ const baseFilters: FilterState = {
   weightRange: [30, 120],
   occupations: [],
   prefectures: [],
+  childrenDesire: 'any',
+  smokingPref: 'any',
+  drinkingPref: 'any',
+  compatibility: { looks: 0, money: 0, personality: 0, food: 0, values: 0, lifestyle: 0 },
 }
 
 describe('calculateFunnel', () => {
@@ -74,8 +78,7 @@ describe('calculateFunnel', () => {
 
   it('all filters combined produces very small number', () => {
     const filters: FilterState = {
-      genders: ['male'],
-      maritalStatuses: ['unmarried'],
+      ...baseFilters,
       ageRange: [25, 35],
       incomeRange: [600, 2000],
       educationLevels: ['university', 'graduate'],
