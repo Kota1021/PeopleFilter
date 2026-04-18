@@ -40,10 +40,10 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
   const chart = useMemo(() => {
     const width = 720
     const height = 320
-    const padLeft = 52
+    const padLeft = 58
     const padRight = 16
-    const padTop = 20
-    const padBottom = 44
+    const padTop = 24
+    const padBottom = 52
 
     const innerW = width - padLeft - padRight
     const innerH = height - padTop - padBottom
@@ -87,13 +87,13 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
   return (
     <div className="w-full">
       {/* Legend */}
-      <div className="flex gap-4 text-xs text-text-secondary mb-2 justify-end pr-2">
+      <div className="flex gap-4 text-sm text-text-secondary mb-2 justify-end pr-2">
         <div className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-0.5 rounded-full" style={{ backgroundColor: MALE_COLOR }} />
+          <span className="inline-block w-3.5 h-0.5 rounded-full" style={{ backgroundColor: MALE_COLOR }} />
           男性
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-0.5 rounded-full" style={{ backgroundColor: FEMALE_COLOR }} />
+          <span className="inline-block w-3.5 h-0.5 rounded-full" style={{ backgroundColor: FEMALE_COLOR }} />
           女性
         </div>
       </div>
@@ -122,7 +122,7 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
                 y={y}
                 textAnchor="end"
                 dominantBaseline="central"
-                fontSize={10}
+                fontSize={14}
                 fill="var(--color-text-muted)"
               >
                 {fmt(t)}
@@ -133,9 +133,9 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
 
         {/* Y axis unit label */}
         <text
-          x={chart.padLeft - 44}
-          y={chart.padTop - 4}
-          fontSize={10}
+          x={chart.padLeft - 48}
+          y={chart.padTop - 6}
+          fontSize={14}
           fill="var(--color-text-muted)"
         >
           {yUnit}
@@ -148,9 +148,9 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
             <text
               key={`xlbl-${i}`}
               x={x}
-              y={chart.height - chart.padBottom + 16}
+              y={chart.height - chart.padBottom + 18}
               textAnchor="middle"
-              fontSize={10}
+              fontSize={14}
               fill="var(--color-text-muted)"
             >
               {p.ageLabel}
@@ -161,7 +161,7 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
           x={(chart.padLeft + (chart.width - chart.padRight)) / 2}
           y={chart.height - 6}
           textAnchor="middle"
-          fontSize={10}
+          fontSize={14}
           fill="var(--color-text-muted)"
         >
           年齢
@@ -251,8 +251,8 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
           const lines: Array<{ label: string; val: string; color: string }> = []
           if (p.male != null) lines.push({ label: '男性', val: fmt(p.male), color: MALE_COLOR })
           if (p.female != null) lines.push({ label: '女性', val: fmt(p.female), color: FEMALE_COLOR })
-          const boxW = 88
-          const boxH = 24 + lines.length * 14
+          const boxW = 118
+          const boxH = 32 + lines.length * 18
           const flip = cx + boxW + 8 > chart.width - chart.padRight
           const bx = flip ? cx - boxW - 8 : cx + 8
           const by = chart.padTop + 8
@@ -260,13 +260,13 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
             <g pointerEvents="none">
               <line x1={cx} x2={cx} y1={chart.padTop} y2={chart.height - chart.padBottom} stroke="var(--color-text-muted)" strokeDasharray="2 3" strokeWidth={0.5} />
               <rect x={bx} y={by} width={boxW} height={boxH} rx={6} fill="var(--color-bg-primary)" stroke="var(--color-border)" />
-              <text x={bx + 8} y={by + 14} fontSize={10} fill="var(--color-text-secondary)" fontWeight={600}>
+              <text x={bx + 10} y={by + 18} fontSize={13} fill="var(--color-text-secondary)" fontWeight={600}>
                 {p.ageLabel}歳
               </text>
               {lines.map((ln, i) => (
                 <g key={ln.label}>
-                  <circle cx={bx + 12} cy={by + 28 + i * 14} r={3} fill={ln.color} />
-                  <text x={bx + 20} y={by + 28 + i * 14} fontSize={10} fill="var(--color-text-primary)" dominantBaseline="central">
+                  <circle cx={bx + 14} cy={by + 38 + i * 18} r={3.5} fill={ln.color} />
+                  <text x={bx + 22} y={by + 38 + i * 18} fontSize={13} fill="var(--color-text-primary)" dominantBaseline="central">
                     {ln.label} {ln.val}
                   </text>
                 </g>

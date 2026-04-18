@@ -25,10 +25,10 @@ export function CDFChart({
   const chart = useMemo(() => {
     const width = 720
     const height = 320
-    const padLeft = 52
+    const padLeft = 58
     const padRight = 16
-    const padTop = 20
-    const padBottom = 44
+    const padTop = 24
+    const padBottom = 52
 
     const innerW = width - padLeft - padRight
     const innerH = height - padTop - padBottom
@@ -69,13 +69,13 @@ export function CDFChart({
 
   return (
     <div className="w-full">
-      <div className="flex gap-4 text-xs text-text-secondary mb-2 justify-end pr-2">
+      <div className="flex gap-4 text-sm text-text-secondary mb-2 justify-end pr-2">
         <div className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-0.5 rounded-full" style={{ backgroundColor: MALE_COLOR }} />
+          <span className="inline-block w-3.5 h-0.5 rounded-full" style={{ backgroundColor: MALE_COLOR }} />
           男性
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-0.5 rounded-full" style={{ backgroundColor: FEMALE_COLOR }} />
+          <span className="inline-block w-3.5 h-0.5 rounded-full" style={{ backgroundColor: FEMALE_COLOR }} />
           女性
         </div>
       </div>
@@ -103,7 +103,7 @@ export function CDFChart({
                 y={y}
                 textAnchor="end"
                 dominantBaseline="central"
-                fontSize={10}
+                fontSize={14}
                 fill="var(--color-text-muted)"
               >
                 {t}%
@@ -129,7 +129,7 @@ export function CDFChart({
           )
         })}
 
-        <text x={chart.padLeft - 44} y={chart.padTop - 4} fontSize={10} fill="var(--color-text-muted)">
+        <text x={chart.padLeft - 48} y={chart.padTop - 6} fontSize={14} fill="var(--color-text-muted)">
           上位%
         </text>
 
@@ -137,9 +137,9 @@ export function CDFChart({
           <text
             key={`xt-${t}`}
             x={chart.xOf(t)}
-            y={chart.height - chart.padBottom + 16}
+            y={chart.height - chart.padBottom + 18}
             textAnchor="middle"
-            fontSize={10}
+            fontSize={14}
             fill="var(--color-text-muted)"
           >
             {t}
@@ -149,7 +149,7 @@ export function CDFChart({
           x={(chart.padLeft + (chart.width - chart.padRight)) / 2}
           y={chart.height - 6}
           textAnchor="middle"
-          fontSize={10}
+          fontSize={14}
           fill="var(--color-text-muted)"
         >
           {xAxisLabel}
@@ -200,8 +200,8 @@ export function CDFChart({
         {hoverIdx != null && (() => {
           const p = points[hoverIdx]
           const cx = chart.xOf(p.x)
-          const boxW = 130
-          const boxH = 58
+          const boxW = 170
+          const boxH = 76
           const flip = cx + boxW + 8 > chart.width - chart.padRight
           const bx = flip ? cx - boxW - 8 : cx + 8
           const by = chart.padTop + 8
@@ -209,15 +209,15 @@ export function CDFChart({
             <g pointerEvents="none">
               <line x1={cx} x2={cx} y1={chart.padTop} y2={chart.height - chart.padBottom} stroke="var(--color-text-muted)" strokeDasharray="2 3" strokeWidth={0.5} />
               <rect x={bx} y={by} width={boxW} height={boxH} rx={6} fill="var(--color-bg-primary)" stroke="var(--color-border)" />
-              <text x={bx + 8} y={by + 14} fontSize={10} fill="var(--color-text-secondary)" fontWeight={600}>
+              <text x={bx + 10} y={by + 18} fontSize={13} fill="var(--color-text-secondary)" fontWeight={600}>
                 {formatThreshold(p.x)}
               </text>
-              <circle cx={bx + 12} cy={by + 30} r={3} fill={MALE_COLOR} />
-              <text x={bx + 20} y={by + 30} fontSize={10} fill="var(--color-text-primary)" dominantBaseline="central">
+              <circle cx={bx + 14} cy={by + 40} r={3.5} fill={MALE_COLOR} />
+              <text x={bx + 22} y={by + 40} fontSize={13} fill="var(--color-text-primary)" dominantBaseline="central">
                 男性 上位 {p.male.toFixed(1)}%
               </text>
-              <circle cx={bx + 12} cy={by + 44} r={3} fill={FEMALE_COLOR} />
-              <text x={bx + 20} y={by + 44} fontSize={10} fill="var(--color-text-primary)" dominantBaseline="central">
+              <circle cx={bx + 14} cy={by + 60} r={3.5} fill={FEMALE_COLOR} />
+              <text x={bx + 22} y={by + 60} fontSize={13} fill="var(--color-text-primary)" dominantBaseline="central">
                 女性 上位 {p.female.toFixed(1)}%
               </text>
             </g>
@@ -225,7 +225,7 @@ export function CDFChart({
         })()}
       </svg>
 
-      <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+      <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
         {referencePercentiles.map((pct) => (
           <div key={pct} className="rounded-md border border-border bg-bg-surface-hover/20 px-2.5 py-1.5">
             <div className="text-text-muted mb-0.5">上位 {pct}%</div>
