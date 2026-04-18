@@ -18,6 +18,13 @@ const FS_TICK_PX = 12
 const FS_TOOLTIP_PX = 13
 const FS_AXIS_PX = 13
 
+function formatPct(v: number): string {
+  if (v <= 0) return '0'
+  if (v < 0.1) return v.toFixed(2)
+  if (v < 10) return v.toFixed(1)
+  return v.toFixed(0)
+}
+
 export function CDFChart({
   points,
   xTicks,
@@ -229,11 +236,11 @@ export function CDFChart({
               </text>
               <circle cx={bx + 12 * u} cy={by + chart.fsTooltip * 1.4 + 8 * u + rowH / 2} r={3 * u} fill={MALE_COLOR} />
               <text x={bx + 20 * u} y={by + chart.fsTooltip * 1.4 + 8 * u + rowH / 2} fontSize={chart.fsTooltip} fill="var(--color-text-primary)" dominantBaseline="central">
-                男性 上位 {p.male.toFixed(1)}%
+                男性 上位 {formatPct(p.male)}%
               </text>
               <circle cx={bx + 12 * u} cy={by + chart.fsTooltip * 1.4 + 8 * u + rowH * 1.5} r={3 * u} fill={FEMALE_COLOR} />
               <text x={bx + 20 * u} y={by + chart.fsTooltip * 1.4 + 8 * u + rowH * 1.5} fontSize={chart.fsTooltip} fill="var(--color-text-primary)" dominantBaseline="central">
-                女性 上位 {p.female.toFixed(1)}%
+                女性 上位 {formatPct(p.female)}%
               </text>
             </g>
           )

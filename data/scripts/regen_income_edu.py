@@ -26,19 +26,21 @@ import math
 
 INCOME_BANDS = [
     "~100","100-200","200-300","300-400","400-500","500-600",
-    "600-700","700-800","800-900","900-1000","1000-1500","1500+"
+    "600-700","700-800","800-900","900-1000","1000-1500",
+    "1500-2000","2000-3000","3000+"
 ]
+N_BANDS = len(INCOME_BANDS)
 
 def lognorm_band_probs(median, sigma):
     mu = math.log(median)
-    edges = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 1e9]
+    edges = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 3000, 1e9]
     def Phi(x):
         return 0.5 * (1 + math.erf(x / math.sqrt(2)))
     def F(x):
         if x <= 0: return 0.0
         return Phi((math.log(x) - mu) / sigma)
     probs = []
-    for i in range(12):
+    for i in range(N_BANDS):
         lo, hi = edges[i], edges[i+1]
         p = F(hi) - F(lo)
         probs.append(max(p, 0.0))
@@ -49,7 +51,7 @@ def round_bands(probs):
     rounded = [round(p, 4) for p in probs]
     diff = round(1.0 - sum(rounded), 4)
     if diff != 0:
-        idx = max(range(12), key=lambda i: rounded[i])
+        idx = max(range(N_BANDS), key=lambda i: rounded[i])
         rounded[idx] = round(rounded[idx] + diff, 4)
     return dict(zip(INCOME_BANDS, rounded))
 

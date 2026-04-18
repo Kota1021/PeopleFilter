@@ -74,7 +74,7 @@ export function StatsView() {
         </div>
         <CDFChart
           points={incomeCDF}
-          xTicks={[0, 500, 1000, 1500, 2000]}
+          xTicks={[0, 500, 1000, 1500, 2000, 3000]}
           xAxisLabel="年収（万円）"
           formatThreshold={(x) => (x === 0 ? '年収問わず' : `${Math.round(x)}万円以上`)}
         />

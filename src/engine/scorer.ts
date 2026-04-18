@@ -405,7 +405,9 @@ function scoreIncome(income: number, gender: Gender, age: number): number {
     { key: '800-900', lower: 800, upper: 900 },
     { key: '900-1000', lower: 900, upper: 1000 },
     { key: '1000-1500', lower: 1000, upper: 1500 },
-    { key: '1500+', lower: 1500, upper: 2500 },
+    { key: '1500-2000', lower: 1500, upper: 2000 },
+    { key: '2000-3000', lower: 2000, upper: 3000 },
+    { key: '3000+', lower: 3000, upper: 5000 },
   ]
 
   // Get the income distribution for this gender+age, marginalized over all education levels

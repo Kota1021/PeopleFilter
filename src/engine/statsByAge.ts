@@ -28,7 +28,9 @@ const INCOME_MIDPOINTS: Record<string, number> = {
   '800-900': 850,
   '900-1000': 950,
   '1000-1500': 1250,
-  '1500+': 1750,
+  '1500-2000': 1750,
+  '2000-3000': 2500,
+  '3000+': 4000,
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -135,7 +137,9 @@ const INCOME_BANDS: Array<{ key: string; label: string; lower: number; upper: nu
   { key: '800-900', label: '800-900', lower: 800, upper: 900 },
   { key: '900-1000', label: '900-1000', lower: 900, upper: 1000 },
   { key: '1000-1500', label: '1000-1500', lower: 1000, upper: 1500 },
-  { key: '1500+', label: '1500+', lower: 1500, upper: 2000 },
+  { key: '1500-2000', label: '1500-2000', lower: 1500, upper: 2000 },
+  { key: '2000-3000', label: '2000-3000', lower: 2000, upper: 3000 },
+  { key: '3000+', label: '3000+', lower: 3000, upper: 5000 },
 ]
 
 function groupInRange(group: AgeGroup, range: [number, number]): boolean {
@@ -204,7 +208,7 @@ export interface CDFPoint {
   female: number
 }
 
-const INCOME_CDF_THRESHOLDS = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000]
+const INCOME_CDF_THRESHOLDS = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 3000]
 
 export function incomeCDFByAge(ageRange: [number, number]): CDFPoint[] {
   const bands = incomeDistributionByAge(ageRange)
