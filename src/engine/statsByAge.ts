@@ -255,30 +255,33 @@ export function heightCDFByAge(ageRange: [number, number]): CDFPoint[] {
   }))
 }
 
-// 現在未婚の人が「50-54歳までに一度でも結婚する」確率を年齢階級別に算出。
-// 分母は current 未婚率、分子は「50-54歳より上回っている部分」。
-// 50歳時点の未婚率は生涯未婚率の代理指標として社会統計で用いられる。
-const MARRIAGE_AGE_GROUPS: AgeGroup[] = [
-  '15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50-54',
+// 現在未婚の人が「今後5年以内に結婚する」確率を年齢階級別に算出。
+// 式: (current未婚率 − 5歳上の未婚率) / current未婚率
+// 2020年国勢調査の断面データを使う近似（同一コホートの追跡ではない）。
+const MARRIAGE_AGE_PAIRS: Array<[AgeGroup, AgeGroup]> = [
+  ['15-19', '20-24'],
+  ['20-24', '25-29'],
+  ['25-29', '30-34'],
+  ['30-34', '35-39'],
+  ['35-39', '40-44'],
+  ['40-44', '45-49'],
+  ['45-49', '50-54'],
 ]
-const MARRIAGE_TERMINAL_GROUP: AgeGroup = '50-54'
 
 export function marriageProbabilityByAge(): AgePoint[] {
-  const maleTerminal = get(populationData, 'maritalStatus', 'male', MARRIAGE_TERMINAL_GROUP, 'unmarried') as number
-  const femaleTerminal = get(populationData, 'maritalStatus', 'female', MARRIAGE_TERMINAL_GROUP, 'unmarried') as number
-
-  const probFor = (gender: Gender, group: AgeGroup, terminal: number): number | null => {
-    const unmarried = get(populationData, 'maritalStatus', gender, group, 'unmarried') as number | undefined
-    if (unmarried == null || unmarried <= 0) return null
-    return Math.max(0, (unmarried - terminal) / unmarried) * 100
+  const probFor = (gender: Gender, cur: AgeGroup, next: AgeGroup): number | null => {
+    const u0 = get(populationData, 'maritalStatus', gender, cur, 'unmarried') as number | undefined
+    const u1 = get(populationData, 'maritalStatus', gender, next, 'unmarried') as number | undefined
+    if (u0 == null || u1 == null || u0 <= 0) return null
+    return Math.max(0, (u0 - u1) / u0) * 100
   }
 
-  return MARRIAGE_AGE_GROUPS.map((group) => ({
-    ageStart: ageGroupStart(group),
-    ageEnd: ageGroupStart(group) + 4,
-    ageLabel: group,
-    male: probFor('male', group, maleTerminal),
-    female: probFor('female', group, femaleTerminal),
+  return MARRIAGE_AGE_PAIRS.map(([cur, next]) => ({
+    ageStart: ageGroupStart(cur),
+    ageEnd: ageGroupStart(cur) + 4,
+    ageLabel: cur,
+    male: probFor('male', cur, next),
+    female: probFor('female', cur, next),
   }))
 }
 

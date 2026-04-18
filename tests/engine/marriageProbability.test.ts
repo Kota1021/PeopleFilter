@@ -1,27 +1,14 @@
 import { describe, it, expect } from 'vitest'
 import { marriageProbabilityByAge } from '../../src/engine/statsByAge'
 
-describe('marriageProbabilityByAge', () => {
+describe('marriageProbabilityByAge (5年先確率)', () => {
   const data = marriageProbabilityByAge()
 
-  it('covers 15-19 through 50-54', () => {
+  it('covers 15-19 through 45-49', () => {
     const labels = data.map((p) => p.ageLabel)
     expect(labels).toEqual([
-      '15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50-54',
+      '15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49',
     ])
-  })
-
-  it('is 0 at the terminal (50-54) group', () => {
-    const terminal = data.find((p) => p.ageLabel === '50-54')!
-    expect(terminal.male).toBeCloseTo(0, 5)
-    expect(terminal.female).toBeCloseTo(0, 5)
-  })
-
-  it('declines monotonically with age for both genders', () => {
-    for (let i = 1; i < data.length; i++) {
-      expect(data[i].male!).toBeLessThanOrEqual(data[i - 1].male! + 1e-9)
-      expect(data[i].female!).toBeLessThanOrEqual(data[i - 1].female! + 1e-9)
-    }
   })
 
   it('stays within [0, 100]', () => {
@@ -33,11 +20,35 @@ describe('marriageProbabilityByAge', () => {
     }
   })
 
-  it('women at 20-24 are more likely to ever-marry than men at the same age', () => {
-    // Because women's unmarried rate is already lower at 20-24 (118 pts married
-    // vs. men's 24 pts), the conditional "future marriage" probability for women
-    // currently unmarried ends up higher than for men at the same age.
-    const p = data.find((d) => d.ageLabel === '20-24')!
-    expect(p.female!).toBeGreaterThan(p.male!)
+  it('peaks at 25-29 for both genders (結婚ピーク世代)', () => {
+    const peakMale = data.find((d) => d.ageLabel === '25-29')!.male!
+    const peakFemale = data.find((d) => d.ageLabel === '25-29')!.female!
+    for (const p of data) {
+      if (p.ageLabel !== '25-29') {
+        expect(p.male!).toBeLessThanOrEqual(peakMale + 1e-9)
+        expect(p.female!).toBeLessThanOrEqual(peakFemale + 1e-9)
+      }
+    }
+  })
+
+  it('matches the reference article formula for male 25-29 (≈33.5%)', () => {
+    // (0.761 - 0.506) / 0.761 = 33.51%
+    // konkatsu-ane.com cites 35.41% for 25歳 male (2015→2020 cohort-tracked);
+    // our 断面 approximation is expected to be within a few points.
+    const p = data.find((d) => d.ageLabel === '25-29')!
+    expect(p.male!).toBeCloseTo(33.51, 1)
+  })
+
+  it('matches the reference article formula for male 40-44 (≈16.6%)', () => {
+    // (0.277 - 0.231) / 0.277 = 16.61%
+    const p = data.find((d) => d.ageLabel === '40-44')!
+    expect(p.male!).toBeCloseTo(16.61, 1)
+  })
+
+  it('women in 20s have higher 5-year marriage probability than men', () => {
+    const m20s = data.find((d) => d.ageLabel === '20-24')!
+    const m25s = data.find((d) => d.ageLabel === '25-29')!
+    expect(m20s.female!).toBeGreaterThan(m20s.male!)
+    expect(m25s.female!).toBeGreaterThan(m25s.male!)
   })
 })
