@@ -69,7 +69,12 @@ export function LineChart({ points, yUnit, formatValue, yMinFloor, onPointClick,
     const dataMin = Math.min(...allValues)
     const dataMax = Math.max(...allValues)
     const rangePad = (dataMax - dataMin) * 0.1 || dataMax * 0.1
-    const yLo = yMinFloor != null ? Math.min(yMinFloor, dataMin - rangePad) : dataMin - rangePad
+    const yLo =
+      yMinFloor != null
+        ? dataMin >= yMinFloor
+          ? yMinFloor
+          : dataMin - rangePad
+        : dataMin - rangePad
     const ticks = niceTicks(yLo, dataMax + rangePad, 5)
     const yMin = ticks[0]
     const yMax = ticks[ticks.length - 1]
