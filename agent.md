@@ -4,7 +4,7 @@ This file provides guidance to AI coding agents when working with code in this r
 
 ## Project Overview
 
-PeopleFilter — 婚活における理想条件の現実感を可視化するWebインフォグラフィック。日本の政府統計データ（国勢調査・就業構造基本調査・国民健康栄養調査）を基に、設定した条件に合致する人が日本に何人いるかをファネルチャートで表示する。「自分を測る」モードでは自身の属性の統計的レア度をスコア化する。
+PeopleFilter — 婚活における理想条件の現実感を可視化するWebインフォグラフィック。日本の政府統計データ（国勢調査・就業構造基本調査・国民健康栄養調査）を基に、設定した条件に合致する人が日本に何人いるかをファネルチャートで表示する。「自分を測る」モードでは自身の属性の統計的レア度をスコア化する。「統計を見る」モードでは年齢別の年収・身長・喫煙率や年収/身長の上位%（CDF）を可視化する。
 
 ## Commands
 
@@ -20,10 +20,11 @@ React 19 + Vite 8 + TypeScript, Tailwind CSS v4, Zustand with persist (localStor
 
 ## Architecture
 
-### Two Modes
+### Three Modes
 
 1. **相手を探す** — フィルター条件で人口を段階的に絞り込むファネル表示 + 条件のレア度スコア
 2. **自分を測る** — 自分の属性を入力してレア度スコアを表示
+3. **統計を見る** — 年齢別の平均年収・平均身長・喫煙率、および選択年齢帯における年収・身長の上位%（CDF）
 
 ### Data Flow
 
@@ -34,6 +35,10 @@ FilterPanel → filterStore (Zustand+persist) → useCalculation → calculator.
 
 [自分を測る]
 SelfInput → selfStore (Zustand+persist) → scorer.ts → ScoreDisplay
+
+[統計を見る]
+StatsView → statsByAge.ts → LineChart (年齢別指標)
+                         → CDFChart  (年齢帯別の上位% — 年収/身長)
 ```
 
 ### Calculation Engine (`src/engine/`)
@@ -52,6 +57,11 @@ SelfInput → selfStore (Zustand+persist) → scorer.ts → ScoreDisplay
   - BMI: 22が理想、普通体重 > 痩せ > 肥満
   - 総合: 幾何平均 → S/A/B/C/D/E ティア
 - **normalDistribution.ts** — 正規分布CDF（Abramowitz & Stegun erfc近似）
+- **statsByAge.ts** — 「統計を見る」タブ用のアグリゲータ。フィルタ非依存、ピュア関数。
+  - `averageIncomeByAge()` / `averageHeightByAge()` / `smokingRateByAge()` — 年齢階級×性別の折れ線用 `AgePoint[]`
+  - `incomeDistributionByAge(ageRange)` — 選択年齢帯の有業者における12段階の年収帯構成比（CDF算出の内部利用）
+  - `incomeCDFByAge(ageRange)` — 年収しきい値ごとの「上位%」。`INCOME_AGE_RANGE` = 20-54
+  - `heightCDFByAge(ageRange)` — 身長しきい値ごとの「上位%」。正規分布近似を人口加重平均。`HEIGHT_AGE_RANGE` = 15-89
 - **types.ts** — `FunnelStage`, `AgeGroup` 定義。0-4歳から80+歳の17グループ。
 
 ### Data (`src/data/`)
@@ -65,6 +75,7 @@ SelfInput → selfStore (Zustand+persist) → scorer.ts → ScoreDisplay
 | `height-weight.json` | 国民健康・栄養調査 2023 | 性別×年齢別の身長・体重（平均+標準偏差） |
 | `occupation.json` | 国勢調査 2020 | 性別×年齢別の職業分布 |
 | `prefecture.json` | 国勢調査 2020 | 47都道府県の人口比率 |
+| `smoking.json` | 国民健康・栄養調査 2023 | 10歳階級×性別の習慣的喫煙率（%）。20歳以上が対象 |
 
 ### State (`src/store/`)
 
@@ -78,6 +89,7 @@ SelfInput → selfStore (Zustand+persist) → scorer.ts → ScoreDisplay
 - **ResultDisplay/** — 最終人数 + アニメーションカウンター + レアリティバッジ
 - **ScoreDisplay/** — レア度スコアカード。S〜Eティア + 各条件のパーセンタイルバー
 - **SelfAssessment/** — 自己プロフィール入力フォーム
+- **StatsView/** — 「統計を見る」タブ。`LineChart`（年齢×指標の折れ線、クリックで年齢帯選択＋ハイライト）と `CDFChart`（横軸=年収/身長、縦軸=上位%、ホバーツールチップ + 上位10/25/50%の参照チップ）。年齢帯は年収用・身長用で独立したstateを持つ。
 - **shared/** — RangeSlider, SteppedRangeSlider, ChipSelector, PrefectureSelector
 
 ## Key Design Decisions
@@ -94,6 +106,8 @@ SelfInput → selfStore (Zustand+persist) → scorer.ts → ScoreDisplay
 - 年収データは有業者のみ（無職・非労働力人口は除外）
 - 国勢調査は2020年データ（人口は変動済み）
 - 0-14歳には年収・学歴・職業データなし（フォールバック値使用）
+- 「統計を見る」の年収CDFは 20-54歳のみ対応（就業構造基本調査の年収×学歴同時分布が 50-54 までしか揃っていないため）
+- 喫煙率は10歳階級（20-29 / 30-39 …）粒度。他指標の5歳階級より粗い
 
 ## Deployment
 
