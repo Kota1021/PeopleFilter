@@ -137,10 +137,14 @@ function getOccupationProbability(gender: Gender, group: AgeGroup, occupations: 
   return prob
 }
 
-/** Map 5-year AgeGroup to the 10-year bucket used by smoking/drinking/children data. */
-function ageGroupToDecade(group: AgeGroup): string {
+/**
+ * Map 5-year AgeGroup to the 10-year bucket used by smoking/drinking/children data.
+ * Returns null for under-20 since these datasets only cover 20+; callers should treat
+ * null as "no filter effect" (probability 1.0) rather than silently borrowing 20-29 values.
+ */
+function ageGroupToDecade(group: AgeGroup): string | null {
   const start = ageGroupStart(group)
-  if (start < 20) return '20-29'
+  if (start < 20) return null
   if (start >= 70) return '70+'
   const decadeStart = Math.floor(start / 10) * 10
   return `${decadeStart}-${decadeStart + 9}`
@@ -149,6 +153,7 @@ function ageGroupToDecade(group: AgeGroup): string {
 function getChildrenDesireProbability(gender: Gender, group: AgeGroup, pref: ChildrenDesire): number {
   if (pref === 'any') return 1.0
   const decade = ageGroupToDecade(group)
+  if (decade == null) return 1.0
   const dist = get(childrenDesireData, 'ageGroups', decade, gender)
   if (!dist) return 1.0
   return (dist[pref] as number) ?? 1.0
@@ -157,6 +162,7 @@ function getChildrenDesireProbability(gender: Gender, group: AgeGroup, pref: Chi
 function getSmokingProbability(gender: Gender, group: AgeGroup, pref: SmokingPref): number {
   if (pref === 'any') return 1.0
   const decade = ageGroupToDecade(group)
+  if (decade == null) return 1.0
   const smokerPct: number | undefined = get(smokingData, 'ageGroups', decade, gender)
   if (smokerPct == null) return 1.0
   return 1 - smokerPct / 100
@@ -165,6 +171,7 @@ function getSmokingProbability(gender: Gender, group: AgeGroup, pref: SmokingPre
 function getDrinkingProbability(gender: Gender, group: AgeGroup, pref: DrinkingPref): number {
   if (pref === 'any') return 1.0
   const decade = ageGroupToDecade(group)
+  if (decade == null) return 1.0
   const dist = get(drinkingData, 'ageGroups', decade, gender)
   if (!dist) return 1.0
   if (pref === 'none') return (dist.none as number) ?? 1.0

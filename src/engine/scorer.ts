@@ -44,9 +44,9 @@ function percentileToTier(p: number): { tier: string; label: string } {
   return { tier: 'E', label: 'ありふれた' }
 }
 
-function ageGroupToDecade(group: AgeGroup): string {
+function ageGroupToDecade(group: AgeGroup): string | null {
   const start = ageGroupStart(group)
-  if (start < 20) return '20-29'
+  if (start < 20) return null
   if (start >= 70) return '70+'
   const decadeStart = Math.floor(start / 10) * 10
   return `${decadeStart}-${decadeStart + 9}`
@@ -81,7 +81,9 @@ function matchFractionToPercentile(frac: number): number {
 function scoreChildrenDesire(pref: ChildrenDesire, genders: Gender[], ageRange: [number, number]): number {
   if (pref === 'any') return -1
   const frac = weightedMatchFraction(genders, ageRange, (g, grp) => {
-    const dist = get(childrenDesireData, 'ageGroups', ageGroupToDecade(grp), g)
+    const decade = ageGroupToDecade(grp)
+    if (decade == null) return 1
+    const dist = get(childrenDesireData, 'ageGroups', decade, g)
     return dist ? (dist[pref] as number) ?? 0 : 0
   })
   return matchFractionToPercentile(frac)
@@ -90,7 +92,9 @@ function scoreChildrenDesire(pref: ChildrenDesire, genders: Gender[], ageRange: 
 function scoreSmoking(pref: SmokingPref, genders: Gender[], ageRange: [number, number]): number {
   if (pref === 'any') return -1
   const frac = weightedMatchFraction(genders, ageRange, (g, grp) => {
-    const smokerPct: number = get(smokingData, 'ageGroups', ageGroupToDecade(grp), g) ?? 0
+    const decade = ageGroupToDecade(grp)
+    if (decade == null) return 1
+    const smokerPct: number = get(smokingData, 'ageGroups', decade, g) ?? 0
     return 1 - smokerPct / 100
   })
   return matchFractionToPercentile(frac)
@@ -99,7 +103,9 @@ function scoreSmoking(pref: SmokingPref, genders: Gender[], ageRange: [number, n
 function scoreDrinking(pref: DrinkingPref, genders: Gender[], ageRange: [number, number]): number {
   if (pref === 'any') return -1
   const frac = weightedMatchFraction(genders, ageRange, (g, grp) => {
-    const dist = get(drinkingData, 'ageGroups', ageGroupToDecade(grp), g)
+    const decade = ageGroupToDecade(grp)
+    if (decade == null) return 1
+    const dist = get(drinkingData, 'ageGroups', decade, g)
     if (!dist) return 0
     if (pref === 'none') return (dist.none as number) ?? 0
     return ((dist.none as number) ?? 0) + ((dist.occasional as number) ?? 0)
