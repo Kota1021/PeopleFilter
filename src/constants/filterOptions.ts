@@ -93,9 +93,8 @@ export const DRINKING_OPTIONS = [
 export const COMPATIBILITY_AXES = [
   { key: 'looks' as const, label: '顔立ち' },
   { key: 'money' as const, label: '金銭感覚' },
-  { key: 'personality' as const, label: '性格の相性' },
+  { key: 'personality' as const, label: '性格・価値観' },
   { key: 'food' as const, label: '食の好み' },
-  { key: 'values' as const, label: '価値観' },
   { key: 'lifestyle' as const, label: '朝型/夜型' },
 ] as const
 

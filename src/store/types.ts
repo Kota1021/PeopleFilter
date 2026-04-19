@@ -4,7 +4,7 @@ export type ChildrenDesire = 'any' | 'want' | 'no'
 export type SmokingPref = 'any' | 'nonsmoker'
 export type DrinkingPref = 'any' | 'none' | 'light'
 
-export type CompatibilityAxis = 'looks' | 'money' | 'personality' | 'food' | 'values' | 'lifestyle'
+export type CompatibilityAxis = 'looks' | 'money' | 'personality' | 'food' | 'lifestyle'
 
 export type Compatibility = Record<CompatibilityAxis, number>
 

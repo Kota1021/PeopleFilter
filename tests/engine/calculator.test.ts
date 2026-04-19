@@ -15,7 +15,7 @@ const baseFilters: FilterState = {
   childrenDesire: 'any',
   smokingPref: 'any',
   drinkingPref: 'any',
-  compatibility: { looks: 0, money: 0, personality: 0, food: 0, values: 0, lifestyle: 0 },
+  compatibility: { looks: 0, money: 0, personality: 0, food: 0, lifestyle: 0 },
 }
 
 describe('calculateFunnel', () => {
@@ -190,7 +190,7 @@ describe('calculateFunnel', () => {
 })
 
 describe('compatibilityCoefficient', () => {
-  const zero: Compatibility = { looks: 0, money: 0, personality: 0, food: 0, values: 0, lifestyle: 0 }
+  const zero: Compatibility = { looks: 0, money: 0, personality: 0, food: 0, lifestyle: 0 }
 
   it('returns 1.0 when all axes are 0', () => {
     expect(compatibilityCoefficient(zero)).toBe(1)

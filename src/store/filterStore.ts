@@ -16,7 +16,6 @@ const defaultCompatibility: Compatibility = {
   money: 0,
   personality: 0,
   food: 0,
-  values: 0,
   lifestyle: 0,
 }
 
@@ -43,7 +42,7 @@ function isValidRange(v: unknown): v is [number, number] {
 function isValidCompatibility(v: unknown): v is Compatibility {
   if (v == null || typeof v !== 'object') return false
   const c = v as Record<string, unknown>
-  const axes: CompatibilityAxis[] = ['looks', 'money', 'personality', 'food', 'values', 'lifestyle']
+  const axes: CompatibilityAxis[] = ['looks', 'money', 'personality', 'food', 'lifestyle']
   return axes.every(a => typeof c[a] === 'number' && c[a] >= 0 && (c[a] as number) <= 5)
 }
 
