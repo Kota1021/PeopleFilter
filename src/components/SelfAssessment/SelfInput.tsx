@@ -19,23 +19,31 @@ function NumberInput({
   step?: number
   unit?: string
 }) {
+  const percent = ((value - min) / (max - min)) * 100
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <div className="flex justify-between items-center">
         <span className="text-sm text-text-secondary">{label}</span>
         <span className="text-sm font-medium tabular-nums">
           {value}{unit}
         </span>
       </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full"
-      />
+      <div className="relative h-8 flex items-center">
+        <div className="absolute w-full h-1.5 bg-bg-surface-hover rounded-full" />
+        <div
+          className="absolute h-1.5 bg-accent-male rounded-full"
+          style={{ left: 0, width: `${percent}%` }}
+        />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="absolute w-full appearance-none bg-transparent z-10"
+        />
+      </div>
     </div>
   )
 }
