@@ -1,0 +1,27 @@
+{
+  "source": "国勢調査 2015年（平成27年） / MHLW 平成令和元年版厚生労働白書 図表1-1-8 年齢階級別未婚率の推移",
+  "sourceUrl": "https://www.mhlw.go.jp/wp/hakusyo/kousei/19/backdata/xls/01-01-01-08.xls",
+  "note": "2020→2015 cohort 追跡用。男女別・5歳階級別の未婚率（%表記を0-1にスケール）。15-19歳は国勢調査一般値 0.997 を使用（ほぼ誰も結婚していない）。MHLWの表は20-24歳〜50-54歳を収録。",
+  "maritalStatus": {
+    "male": {
+      "15-19": { "unmarried": 0.997 },
+      "20-24": { "unmarried": 0.950 },
+      "25-29": { "unmarried": 0.727 },
+      "30-34": { "unmarried": 0.471 },
+      "35-39": { "unmarried": 0.350 },
+      "40-44": { "unmarried": 0.300 },
+      "45-49": { "unmarried": 0.259 },
+      "50-54": { "unmarried": 0.209 }
+    },
+    "female": {
+      "15-19": { "unmarried": 0.997 },
+      "20-24": { "unmarried": 0.914 },
+      "25-29": { "unmarried": 0.613 },
+      "30-34": { "unmarried": 0.346 },
+      "35-39": { "unmarried": 0.239 },
+      "40-44": { "unmarried": 0.193 },
+      "45-49": { "unmarried": 0.161 },
+      "50-54": { "unmarried": 0.120 }
+    }
+  }
+}

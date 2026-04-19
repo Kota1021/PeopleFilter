@@ -2,6 +2,7 @@ import type { AgeGroup } from './types'
 import { AGE_GROUPS, ageGroupStart } from './types'
 import { normalCDF } from './normalDistribution'
 import populationData from '../data/population.json'
+import population2015Data from '../data/population-2015.json'
 import incomeEducationData from '../data/income-education.json'
 import heightWeightData from '../data/height-weight.json'
 import smokingData from '../data/smoking.json'
@@ -260,8 +261,10 @@ export function heightCDFByAge(ageRange: [number, number]): CDFPoint[] {
 }
 
 // 現在未婚の人が「今後5年以内に結婚する」確率を年齢階級別に算出。
-// 式: (current未婚率 − 5歳上の未婚率) / current未婚率
-// 2020年国勢調査の断面データを使う近似（同一コホートの追跡ではない）。
+// 2015→2020 のコホート追跡: 2015年に cur 歳の未婚率と、同じコホートが2020年に next 歳になった時点の未婚率の差分。
+// 式: (2015_unmarried[cur] − 2020_unmarried[next]) / 2015_unmarried[cur]
+// Why: 断面法（2020年のみ）だとコホート効果（若い世代ほど未婚率が高い長期トレンド）を結婚シグナルと誤検出し、
+// 特に中高年（40代）の確率を大幅に過大評価する（10%超 vs 実態ほぼ0〜3%）。
 const MARRIAGE_AGE_PAIRS: Array<[AgeGroup, AgeGroup]> = [
   ['15-19', '20-24'],
   ['20-24', '25-29'],
@@ -274,7 +277,7 @@ const MARRIAGE_AGE_PAIRS: Array<[AgeGroup, AgeGroup]> = [
 
 export function marriageProbabilityByAge(): AgePoint[] {
   const probFor = (gender: Gender, cur: AgeGroup, next: AgeGroup): number | null => {
-    const u0 = get(populationData, 'maritalStatus', gender, cur, 'unmarried') as number | undefined
+    const u0 = get(population2015Data, 'maritalStatus', gender, cur, 'unmarried') as number | undefined
     const u1 = get(populationData, 'maritalStatus', gender, next, 'unmarried') as number | undefined
     if (u0 == null || u1 == null || u0 <= 0) return null
     return Math.max(0, (u0 - u1) / u0) * 100

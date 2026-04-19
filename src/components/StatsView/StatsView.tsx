@@ -120,8 +120,8 @@ export function StatsView() {
 
       <StatsCard
         title="年齢別 向こう5年で結婚する確率"
-        description="現在未婚の人が今後5年以内に結婚する確率。式: (現在の未婚率 − 5歳上の未婚率) / 現在の未婚率。※2020年の断面データ近似のため、若年層ほど世代効果で実際はやや低くなる傾向。"
-        source="国勢調査 2020"
+        description="現在未婚の人が今後5年以内に結婚する確率。2015→2020 国勢調査のコホート追跡で算出。式: (2015年 cur 歳未婚率 − 2020年 cur+5 歳未婚率) / 2015年 cur 歳未婚率。"
+        source="国勢調査 2015・2020"
       >
         <LineChart
           points={marriageData}
